@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "598145394712",
+    "firebase_url": "https://apparel-slemn24-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "apparel-slemn24",
+    "storage_bucket": "apparel-slemn24.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598145394712:android:0abc024f47278dc5bffb6d",
+        "android_client_info": {
+          "package_name": "com.exemple.slemn24"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADFREavGK0FOGD4Q2ckS5GVTVXPs6iahc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
