@@ -193,7 +193,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text(
@@ -248,19 +250,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
 
         if (mounted) {
-          // Send email verification
-          await _authService.sendEmailVerification();
-          
           // Show success dialog
           _showRegistrationSuccessDialog();
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
           );
         }
       } finally {
@@ -281,7 +277,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text('Registrasi Berhasil'),
         content: const Text(
           'Akun Anda telah berhasil dibuat! '
-          'Silakan cek email Anda untuk verifikasi akun sebelum login.',
+          'Silakan login untuk melanjutkan.',
         ),
         actions: [
           TextButton(

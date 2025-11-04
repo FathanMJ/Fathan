@@ -1,12 +1,37 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import 'user_profile_screen.dart';
 import 'profile/address_screen.dart';
 import 'profile/order_history_screen.dart';
 import 'profile/vouchers_screen.dart';
 import 'profile/change_password_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final user = await _authService.currentUser;
+      if (!mounted) return;
+      setState(() {
+        _user = user;
+      });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +44,7 @@ class ProfileScreen extends StatelessWidget {
             expandedHeight: 200,
             floating: false,
             pinned: true,
+            automaticallyImplyLeading: false,
             backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -57,9 +83,9 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       // User Name
-                      const Text(
-                        'Andy',
-                        style: TextStyle(
+                      Text(
+                        (_user?['nama'] ?? 'User').toString(),
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -67,9 +93,12 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       // User Email
-                      const Text(
-                        'andy@example.com',
-                        style: TextStyle(fontSize: 14, color: Colors.white70),
+                      Text(
+                        (_user?['email'] ?? '').toString(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                   ),

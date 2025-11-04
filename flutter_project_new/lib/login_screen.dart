@@ -153,7 +153,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text(
@@ -205,24 +207,16 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (mounted) {
-          // Check if email is verified
-          if (!_authService.isEmailVerified) {
-            _showEmailVerificationDialog();
-          } else {
-            // Navigate to HomeScreen and remove all previous routes
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-          }
+          // Navigate to HomeScreen and remove all previous routes
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
           );
         }
       } finally {
@@ -235,84 +229,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleForgotPassword() async {
-    if (_emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Masukkan email terlebih dahulu'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    try {
-      await _authService.sendPasswordResetEmail(_emailController.text.trim());
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email reset password telah dikirim'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showEmailVerificationDialog() {
-    // Simpan context asal agar tidak menggunakan context dialog yang bisa ter-dispose
-    final rootContext = context;
-    showDialog(
-      context: rootContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Verifikasi Email'),
-        content: const Text(
-          'Silakan verifikasi email Anda terlebih dahulu. '
-          'Kami telah mengirim email verifikasi ke alamat email Anda.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Tutup'),
-          ),
-          TextButton(
-            onPressed: () async {
-              // Tutup dialog dengan context dialog
-              Navigator.of(dialogContext).pop();
-              try {
-                await _authService.sendEmailVerification();
-                if (mounted) {
-                  // Tampilkan snackbar menggunakan context asal yang masih valid
-                  ScaffoldMessenger.of(rootContext).showSnackBar(
-                    const SnackBar(
-                      content: Text('Email verifikasi telah dikirim ulang'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(rootContext).showSnackBar(
-                    SnackBar(
-                      content: Text(e.toString()),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Kirim Ulang'),
-          ),
-        ],
+  void _handleForgotPassword() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fitur reset password belum tersedia'),
+        backgroundColor: Colors.orange,
       ),
     );
   }

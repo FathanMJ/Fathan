@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class AccountInfoScreen extends StatefulWidget {
   const AccountInfoScreen({super.key});
@@ -8,11 +9,33 @@ class AccountInfoScreen extends StatefulWidget {
 }
 
 class _AccountInfoScreenState extends State<AccountInfoScreen> {
-  final TextEditingController _nameController = TextEditingController(text: 'Andy');
-  final TextEditingController _emailController = TextEditingController(text: 'andy@example.com');
-  final TextEditingController _phoneController = TextEditingController(text: '+62 812-3456-7890');
-  
+  final TextEditingController _nameController = TextEditingController(text: '');
+  final TextEditingController _emailController = TextEditingController(
+    text: '',
+  );
+  final TextEditingController _phoneController = TextEditingController(
+    text: '',
+  );
+  final AuthService _authService = AuthService();
+
   bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final user = await _authService.currentUser;
+      if (!mounted) return;
+      _nameController.text = (user?['nama'] ?? '').toString();
+      _emailController.text = (user?['email'] ?? '').toString();
+      _phoneController.text = (user?['pelanggan']?['telepon'] ?? '').toString();
+      setState(() {});
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +157,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _emailController.text,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.white70),
                   ),
                 ],
               ),
@@ -249,11 +269,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
               color: const Color(0xFFF1F3F4),
               borderRadius: BorderRadius.circular(25),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF667eea),
-              size: 24,
-            ),
+            child: Icon(icon, color: const Color(0xFF667eea), size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -272,11 +288,11 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                 TextField(
                   controller: controller,
                   enabled: enabled,
-                  keyboardType: isEmail 
-                      ? TextInputType.emailAddress 
-                      : isPhone 
-                          ? TextInputType.phone 
-                          : TextInputType.text,
+                  keyboardType: isEmail
+                      ? TextInputType.emailAddress
+                      : isPhone
+                      ? TextInputType.phone
+                      : TextInputType.text,
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.black,
@@ -290,12 +306,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
               ],
             ),
           ),
-          if (enabled)
-            const Icon(
-              Icons.edit,
-              size: 20,
-              color: Colors.grey,
-            ),
+          if (enabled) const Icon(Icons.edit, size: 20, color: Colors.grey),
         ],
       ),
     );
@@ -318,17 +329,13 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(25),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+              children: [
                 Text(
                   title,
                   style: const TextStyle(
@@ -340,10 +347,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),

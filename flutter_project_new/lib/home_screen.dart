@@ -6,7 +6,9 @@ import 'screens/custom_order_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/profile_screen.dart';
 import 'utils/page_transitions.dart';
+import 'pilih_auth_screen.dart';
 import 'dart:ui' as ui;
+import 'services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,14 +34,20 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Widget _buildAnimatedIcon(IconData unselectedIcon, IconData selectedIcon, int index) {
+  Widget _buildAnimatedIcon(
+    IconData unselectedIcon,
+    IconData selectedIcon,
+    int index,
+  ) {
     final isSelected = _selectedIndex == index;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+        color: isSelected
+            ? AppColors.primary.withOpacity(0.1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: AnimatedSwitcher(
@@ -57,9 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
+      body: Center(child: _widgetOptions.elementAt(_selectedIndex)),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -89,11 +95,19 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Cari',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.favorite_border, Icons.favorite, 2),
+              icon: _buildAnimatedIcon(
+                Icons.favorite_border,
+                Icons.favorite,
+                2,
+              ),
               label: 'Disimpan',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.shopping_bag_outlined, Icons.shopping_bag, 3),
+              icon: _buildAnimatedIcon(
+                Icons.shopping_bag_outlined,
+                Icons.shopping_bag,
+                3,
+              ),
               label: 'Keranjang',
             ),
             BottomNavigationBarItem(
@@ -115,6 +129,8 @@ class HomeScreenBody extends StatefulWidget {
 }
 
 class _HomeScreenBodyState extends State<HomeScreenBody> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _user;
   final List<String> _promoBanners = [
     'https://placehold.co/600x200/FF5252/FFFFFF?text=PROMO+AKHIR+TAHUN',
     'https://placehold.co/600x200/5252FF/FFFFFF?text=DISKON+SEMUA+PRODUK',
@@ -125,23 +141,27 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
     {
       'name': 'Regular Fit Slagan',
       'price': 'Rp 179.000',
-      'image': 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
+      'image':
+          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
     },
     {
       'name': 'Regular Fit Polo',
       'price': 'Rp 1.100.000',
       'discounted_price': 'Rp 520.000',
-      'image': 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
+      'image':
+          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
     },
     {
       'name': 'Regular Fit Black',
       'price': 'Rp 169.000',
-      'image': 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
+      'image':
+          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
     },
     {
       'name': 'Regular Fit V-Neck',
       'price': 'Rp 129.000',
-      'image': 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
+      'image':
+          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
     },
   ];
 
@@ -180,6 +200,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
+    _loadUser();
   }
 
   @override
@@ -187,6 +208,26 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
     _stopAutoSlide();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<bool?> _confirmLogout(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Yakin ingin keluar dari akun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startAutoSlide() {
@@ -216,6 +257,16 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
     _timer = null;
   }
 
+  Future<void> _loadUser() async {
+    try {
+      final user = await _authService.currentUser;
+      if (!mounted) return;
+      setState(() {
+        _user = user;
+      });
+    } catch (_) {}
+  }
+
   void _toggleAutoSlide() {
     setState(() {
       _isAutoSlideEnabled = !_isAutoSlideEnabled;
@@ -238,9 +289,9 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Hi, Andy',
-              style: TextStyle(
+            Text(
+              'Hi, ${(_user?['nama'] ?? 'User')}',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppColors.text,
@@ -310,9 +361,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
             onPressed: () {
               Navigator.push(
                 context,
-                CustomPageTransitions.slideFromBottom(
-                  const ChatListScreen(),
-                ),
+                CustomPageTransitions.slideFromBottom(const ChatListScreen()),
               );
             },
             backgroundColor: AppColors.primary,
@@ -327,10 +376,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                   colors: [AppColors.primary, AppColors.secondary],
                 ),
               ),
-              child: const Icon(
-                Icons.chat,
-                size: 28,
-              ),
+              child: const Icon(Icons.chat, size: 28),
             ),
           ),
         );
@@ -448,9 +494,9 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
           ),
           const SizedBox(height: 16),
           const Text(
-              'Muara Project',
-              style: TextStyle(
-                color: Colors.white,
+            'Muara Project',
+            style: TextStyle(
+              color: Colors.white,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
@@ -499,11 +545,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -569,21 +611,21 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Andy Pratama',
-                        style: TextStyle(
+                        (_user?['nama'] ?? 'User').toString(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
-                        'andy@email.com',
-                        style: TextStyle(
+                        (_user?['email'] ?? '').toString(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
@@ -593,13 +635,23 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {
-                    Navigator.pop(context);
+                  onPressed: () async {
+                    final confirm = await _confirmLogout(context);
+                    if (confirm != true) return;
+                    try {
+                      await _authService.signOut();
+                      if (!mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const PilihAuthScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    } catch (_) {
+                      Navigator.pop(context);
+                    }
                   },
-                  icon: const Icon(
-                    Icons.logout,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.logout, color: Colors.white),
                 ),
               ],
             ),
@@ -630,11 +682,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon, 
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: AppColors.primary, size: 24),
                 ),
                 if (notificationCount > 0)
                   TweenAnimationBuilder<double>(
@@ -652,11 +700,14 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                               color: AppColors.accent,
                               shape: BoxShape.circle,
                             ),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
                             child: Text(
                               '$notificationCount',
                               style: const TextStyle(
-                                color: Colors.white, 
+                                color: Colors.white,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -709,10 +760,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.search,
-                    color: AppColors.primary,
-                  ),
+                  child: const Icon(Icons.search, color: AppColors.primary),
                 ),
                 suffixIcon: Container(
                   margin: const EdgeInsets.all(8),
@@ -721,13 +769,13 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                     color: AppColors.accent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.mic,
-                    color: AppColors.accent,
-                  ),
+                  child: const Icon(Icons.mic, color: AppColors.accent),
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
             ),
           ),
@@ -917,13 +965,13 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
             child: Stack(
               children: [
                 ClipRRect(
-              borderRadius: const BorderRadius.vertical(
+                  borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
-              ),
-              child: Image.network(
-                image,
-                fit: BoxFit.cover,
-                width: double.infinity,
+                  ),
+                  child: Image.network(
+                    image,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
                     height: double.infinity,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -1001,43 +1049,43 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       color: AppColors.text,
-                ),
+                    ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                if (discountedPrice != null)
-                  Text(
-                    price,
-                    style: TextStyle(
+                      if (discountedPrice != null)
+                        Text(
+                          price,
+                          style: TextStyle(
                             fontSize: 11,
-                      color: Colors.grey[600],
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                Text(
-                  discountedPrice ?? price,
+                            color: Colors.grey[600],
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      Text(
+                        discountedPrice ?? price,
                         style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                           color: discountedPrice != null
                               ? AppColors.accent
                               : AppColors.primary,
                           fontSize: 13,
-                  ),
-                ),
-              ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

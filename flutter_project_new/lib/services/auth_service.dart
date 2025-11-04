@@ -1,18 +1,28 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'laravel_api_service.dart';
+import '../config/api_config.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+  // Get current user from stored token
+  Future<Map<String, dynamic>?> get currentUser async {
+    final token = await LaravelApiService.getToken();
+    if (token == null) return null;
 
-  // Get current user
-  User? get currentUser => _auth.currentUser;
+    try {
+      final response = await LaravelApiService.get(ApiConfig.user);
+      return response['data'];
+    } catch (e) {
+      return null;
+    }
+  }
 
-  // Auth state changes stream
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  // Check if user is authenticated
+  Future<bool> get isAuthenticated async {
+    final token = await LaravelApiService.getToken();
+    return token != null;
+  }
 
   // Sign up with email and password
-  Future<UserCredential?> signUpWithEmailAndPassword({
+  Future<Map<String, dynamic>?> signUpWithEmailAndPassword({
     required String email,
     required String password,
     required String name,
@@ -20,153 +30,89 @@ class AuthService {
     String? address,
   }) async {
     try {
-      // Create user with email and password
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      // Update display name
-      await userCredential.user?.updateDisplayName(name);
-
-      // Save additional user data to Firebase Realtime Database
-      if (userCredential.user != null) {
-        await _database.child('users').child(userCredential.user!.uid).set({
+      final response = await LaravelApiService.post(
+        ApiConfig.register,
+        body: {
           'name': name,
           'email': email,
-          'phone': phone ?? '',
-          'address': address ?? '',
-          'createdAt': DateTime.now().toIso8601String(),
-          'isEmailVerified': false,
-        });
-      }
+          'password': password,
+          'password_confirmation': password,
+          'telepon': phone ?? '',
+          'alamat': address ?? '',
+        },
+        requiresAuth: false,
+      );
 
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      if (response['success'] == true) {
+        // Save token
+        final token = response['data']['token'];
+        await LaravelApiService.saveToken(token);
+
+        return response['data'];
+      } else {
+        throw Exception(response['message'] ?? 'Registrasi gagal');
+      }
     } catch (e) {
-      throw 'Terjadi kesalahan: ${e.toString()}';
+      throw 'Gagal terhubung ke server. Periksa koneksi Anda.';
     }
   }
 
   // Sign in with email and password
-  Future<UserCredential?> signInWithEmailAndPassword({
+  Future<Map<String, dynamic>?> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      final response = await LaravelApiService.post(
+        ApiConfig.login,
+        body: {'email': email, 'password': password},
+        requiresAuth: false,
       );
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+
+      if (response['success'] == true) {
+        // Save token
+        final token = response['data']['token'];
+        await LaravelApiService.saveToken(token);
+
+        return response['data'];
+      } else {
+        throw Exception(response['message'] ?? 'Login gagal');
+      }
     } catch (e) {
-      throw 'Terjadi kesalahan: ${e.toString()}';
+      throw 'Gagal terhubung ke server. Periksa koneksi Anda.';
     }
   }
 
   // Sign out
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
+      // Call logout API to revoke token on server
+      await LaravelApiService.post(ApiConfig.logout);
     } catch (e) {
-      throw 'Gagal keluar: ${e.toString()}';
+      // Even if API call fails, we should still clear local token
+    } finally {
+      // Remove token from local storage
+      await LaravelApiService.removeToken();
     }
   }
 
-  // Send password reset email
-  Future<void> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
-    } catch (e) {
-      throw 'Terjadi kesalahan: ${e.toString()}';
-    }
-  }
+  // Update profile
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+    String? address,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['nama'] = name;
+    if (email != null) body['email'] = email;
+    if (phone != null) body['telepon'] = phone;
+    if (address != null) body['alamat'] = address;
 
-  // Send email verification
-  Future<void> sendEmailVerification() async {
-    try {
-      if (currentUser != null && !currentUser!.emailVerified) {
-        await currentUser!.sendEmailVerification();
-      }
-    } catch (e) {
-      throw 'Gagal mengirim email verifikasi: ${e.toString()}';
+    final response = await LaravelApiService.put(ApiConfig.user, body: body);
+    if (response['success'] == true) {
+      return Map<String, dynamic>.from(response['data'] as Map);
     }
-  }
-
-  // Check if email is verified
-  bool get isEmailVerified => currentUser?.emailVerified ?? false;
-
-  // Reload user data
-  Future<void> reloadUser() async {
-    try {
-      await currentUser?.reload();
-    } catch (e) {
-      throw 'Gagal memuat ulang data user: ${e.toString()}';
-    }
-  }
-
-  // Get user data from database
-  Future<Map<String, dynamic>?> getUserData() async {
-    try {
-      if (currentUser == null) return null;
-      
-      final snapshot = await _database
-          .child('users')
-          .child(currentUser!.uid)
-          .get();
-      
-      if (snapshot.exists) {
-        return Map<String, dynamic>.from(snapshot.value as Map);
-      }
-      return null;
-    } catch (e) {
-      throw 'Gagal mengambil data user: ${e.toString()}';
-    }
-  }
-
-  // Update user data
-  Future<void> updateUserData(Map<String, dynamic> data) async {
-    try {
-      if (currentUser == null) throw 'User tidak ditemukan';
-      
-      await _database
-          .child('users')
-          .child(currentUser!.uid)
-          .update(data);
-    } catch (e) {
-      throw 'Gagal memperbarui data user: ${e.toString()}';
-    }
-  }
-
-  // Handle Firebase Auth exceptions
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'Email tidak ditemukan';
-      case 'wrong-password':
-        return 'Password salah';
-      case 'email-already-in-use':
-        return 'Email sudah digunakan';
-      case 'weak-password':
-        return 'Password terlalu lemah';
-      case 'invalid-email':
-        return 'Email tidak valid';
-      case 'user-disabled':
-        return 'Akun dinonaktifkan';
-      case 'too-many-requests':
-        return 'Terlalu banyak percobaan. Coba lagi nanti';
-      case 'operation-not-allowed':
-        return 'Operasi tidak diizinkan';
-      case 'requires-recent-login':
-        return 'Silakan login ulang untuk melanjutkan';
-      default:
-        return 'Terjadi kesalahan: ${e.message}';
-    }
+    throw Exception(response['message'] ?? 'Gagal memperbarui profil');
   }
 }
-

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../constants/colors.dart';
+import '../pilih_auth_screen.dart';
+import 'profile/edit_profile_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -22,7 +24,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      final userData = await _authService.getUserData();
+      final userData = await _authService.currentUser;
       setState(() {
         _userData = userData;
         _isLoading = false;
@@ -49,6 +51,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
+        leading: BackButton(
+          color: AppColors.text,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Profil Saya',
           style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
@@ -73,8 +79,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildProfileCard() {
-    final user = _authService.currentUser;
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -98,7 +102,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            _userData?['name'] ?? user?.displayName ?? 'User',
+            _userData?['nama'] ?? 'User',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -107,31 +111,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            user?.email ?? '',
+            _userData?['email'] ?? '',
             style: TextStyle(fontSize: 16, color: AppColors.textLight),
           ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: user?.emailVerified == true
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              user?.emailVerified == true
-                  ? 'Email Terverifikasi'
-                  : 'Email Belum Terverifikasi',
-              style: TextStyle(
-                color: user?.emailVerified == true
-                    ? Colors.green
-                    : Colors.orange,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -167,20 +150,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _buildInfoRow(
             Icons.phone,
             'Nomor Telepon',
-            _userData?['phone'] ?? 'Belum diisi',
+            (_userData?['pelanggan']?['telepon'] ?? 'Belum diisi').toString(),
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.home,
             'Alamat',
-            _userData?['address'] ?? 'Belum diisi',
+            (_userData?['pelanggan']?['alamat'] ?? 'Belum diisi').toString(),
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
             Icons.calendar_today,
             'Bergabung Sejak',
-            _userData?['createdAt'] != null
-                ? _formatDate(_userData!['createdAt'])
+            _userData?['dibuat_pada'] != null
+                ? _formatDate(_userData!['dibuat_pada'])
                 : 'Tidak diketahui',
           ),
         ],
@@ -228,38 +211,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: Icons.edit,
           title: 'Edit Profil',
           subtitle: 'Ubah informasi akun',
-          onTap: () {
-            // TODO: Implement edit profile
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Fitur edit profil akan segera hadir'),
-                backgroundColor: Colors.orange,
+          onTap: () async {
+            final updated = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditProfileScreen(initialData: _userData),
               ),
             );
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildActionButton(
-          icon: Icons.email,
-          title: 'Verifikasi Email',
-          subtitle: 'Kirim ulang email verifikasi',
-          onTap: () async {
-            try {
-              await _authService.sendEmailVerification();
+            if (updated == true) {
+              _loadUserData();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Email verifikasi telah dikirim'),
+                    content: Text('Profil berhasil diperbarui'),
                     backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Gagal mengirim email: ${e.toString()}'),
-                    backgroundColor: Colors.red,
                   ),
                 );
               }
@@ -268,13 +233,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
         const SizedBox(height: 12),
         _buildActionButton(
+          icon: Icons.email,
+          title: 'Verifikasi Email',
+          subtitle: 'Tidak diperlukan (menggunakan login API)',
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tidak diperlukan. Autentikasi via token API.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildActionButton(
           icon: Icons.logout,
           title: 'Keluar',
           subtitle: 'Logout dari akun',
           onTap: () async {
+            final confirm = await _confirmLogout();
+            if (confirm != true) return;
             try {
               await _authService.signOut();
-              // AuthWrapper will handle the navigation
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => PilihAuthScreen()),
+                (route) => false,
+              );
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -372,5 +357,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       return 'Tidak diketahui';
     }
+  }
+
+  Future<bool?> _confirmLogout() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Yakin ingin keluar dari akun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
   }
 }
