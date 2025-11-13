@@ -3,6 +3,7 @@ import '../constants/colors.dart';
 import '../product_model.dart';
 import 'material_model.dart';
 import 'design_upload_screen.dart';
+import '../services/master_data_service.dart';
 
 class CollarTypeScreen extends StatefulWidget {
   final Product selectedProduct;
@@ -30,48 +31,42 @@ class CollarTypeScreen extends StatefulWidget {
 
 class _CollarTypeScreenState extends State<CollarTypeScreen> {
   String? _selectedCollarType;
-
-  final List<Map<String, dynamic>> _collarOptions = [
-    {
-      'type': 'O-Neck',
-      'description': 'Kerah bulat standar',
-      'priceAdjustment': 0,
-      'icon': Icons.circle_outlined,
-      'applicable': ['Kaos', 'T-Shirt', 'Jersey'],
-    },
-    {
-      'type': 'V-Neck',
-      'description': 'Kerah berbentuk V',
-      'priceAdjustment': 5000,
-      'icon': Icons.change_history,
-      'applicable': ['Kaos', 'T-Shirt', 'Jersey'],
-    },
-    {
-      'type': 'Polo',
-      'description': 'Kerah polo dengan kancing',
-      'priceAdjustment': 15000,
-      'icon': Icons.sports_esports,
-      'applicable': ['Polo', 'Jersey'],
-    },
-    {
-      'type': 'Henley',
-      'description': 'Kerah dengan beberapa kancing',
-      'priceAdjustment': 10000,
-      'icon': Icons.more_horiz,
-      'applicable': ['Kaos', 'Jersey'],
-    },
-  ];
+  List<Map<String, dynamic>> _collarOptions = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Auto-select default option if only one applicable
+    _loadCollarTypes();
+  }
+
+  Future<void> _loadCollarTypes() async {
+    try {
+      final collarTypes = await MasterDataService.getCollarTypes();
+      if (mounted) {
+        setState(() {
+          _collarOptions = collarTypes;
+          _isLoading = false;
+          
+          // Auto-select first option if available
+          if (_collarOptions.isNotEmpty) {
     final applicableOptions = _collarOptions
         .where((option) => option['applicable'].contains(widget.selectedProduct.name))
         .toList();
     
     if (applicableOptions.isNotEmpty) {
       _selectedCollarType = applicableOptions.first['type'];
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading collar types: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -289,9 +284,38 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
   }
 
   Widget _buildCollarOptions() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     final applicableOptions = _collarOptions
         .where((option) => option['applicable'].contains(widget.selectedProduct.name))
         .toList();
+
+    if (applicableOptions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.sports_outlined,
+              size: 64,
+              color: AppColors.textLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada tipe kerah tersedia',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -354,7 +378,7 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
                   ),
                 ),
                 child: Icon(
-                  collarOption['icon'],
+                  collarOption['iconData'] ?? Icons.circle_outlined,
                   color: isSelected ? AppColors.primary : AppColors.textLight,
                   size: 24,
                 ),

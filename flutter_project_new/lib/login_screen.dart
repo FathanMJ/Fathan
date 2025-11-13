@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 import 'services/auth_service.dart';
+import 'services/laravel_api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -201,22 +203,110 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        await _authService.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
+
+        // Step 1: Login dengan Firebase Auth
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
         );
 
+        final firebaseUser = userCredential.user;
+        if (firebaseUser == null) {
+          throw Exception('Firebase login failed');
+        }
+
+        // Check if email is verified
+        if (!firebaseUser.emailVerified) {
+          await firebaseUser.sendEmailVerification();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Email belum diverifikasi. Kami telah mengirim ulang email verifikasi.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          return;
+        }
+
+        // Step 2: Get ID token dan sync ke Laravel/SQL
+        final idToken = await firebaseUser.getIdToken();
+        
+        try {
+          final response = await LaravelApiService.post(
+            '/login/firebase',
+            body: {'id_token': idToken},
+            requiresAuth: false,
+          );
+
+          if (response['success'] == true) {
+            final data = response['data'] as Map<String, dynamic>?;
+            final token = data != null ? data['token'] as String? : null;
+
+            if (token != null) {
+              await LaravelApiService.saveToken(token);
+            }
+
+            if (mounted) {
+              // Navigate to HomeScreen and remove all previous routes
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            }
+          } else {
+            throw Exception(response['message'] ?? 'Gagal sync ke server');
+          }
+        } catch (e) {
+          // Jika sync ke Laravel gagal, tetap biarkan user login dengan Firebase
+          // Tapi tetap coba login dengan Laravel API sebagai fallback
+          try {
+            await _authService.signInWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+            }
+          } catch (fallbackError) {
+            throw Exception('Login berhasil di Firebase, tetapi gagal sync ke server: $e');
+          }
+        }
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = 'Login gagal';
+        if (e.code == 'user-not-found') {
+          errorMessage = 'Email tidak terdaftar';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Password salah';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Email tidak valid';
+        } else if (e.code == 'user-disabled') {
+          errorMessage = 'Akun telah dinonaktifkan';
+        } else {
+          errorMessage = e.message ?? 'Login gagal';
+        }
+
         if (mounted) {
-          // Navigate to HomeScreen and remove all previous routes
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Login gagal: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } finally {

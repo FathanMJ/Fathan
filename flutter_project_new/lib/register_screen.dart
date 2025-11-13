@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'services/auth_service.dart';
+import 'services/laravel_api_service.dart';
+import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -241,22 +244,115 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       try {
-        await _authService.signUpWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
-          address: _addressController.text.trim(),
-        );
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
+        final name = _nameController.text.trim();
+        final phone = _phoneController.text.trim();
+        final address = _addressController.text.trim();
+
+        // Step 1: Register dengan Firebase Auth
+        final userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+
+        // Update display name di Firebase
+        await userCredential.user?.updateDisplayName(name);
+        await userCredential.user?.reload();
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+
+        if (firebaseUser == null) {
+          throw Exception('Firebase user creation failed');
+        }
+
+        // Step 2: Get ID token dan sync ke Laravel/SQL
+        final idToken = await firebaseUser.getIdToken();
+
+        try {
+          final response = await LaravelApiService.post(
+            '/register/firebase',
+            body: {'id_token': idToken, 'alamat': address, 'telepon': phone},
+            requiresAuth: false,
+          );
+
+          if (response['success'] == true) {
+            final data = response['data'] as Map<String, dynamic>?;
+            final token = data != null ? data['token'] as String? : null;
+            final emailVerified = data != null
+                ? (data['email_verified'] as bool? ?? false)
+                : false;
+
+            if (token != null) {
+              await LaravelApiService.saveToken(token);
+            }
+
+            if (mounted) {
+              // Check if email is verified
+              if (!emailVerified && !firebaseUser.emailVerified) {
+                // Email belum verified, kirim ulang email verifikasi
+                await firebaseUser.sendEmailVerification();
+
+                _showEmailVerificationDialog();
+              } else {
+                // Email sudah verified atau langsung verified, arahkan ke home
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  (route) => false,
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Registrasi berhasil!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
+          } else {
+            throw Exception(response['message'] ?? 'Gagal sync ke server');
+          }
+        } catch (e) {
+          // Jika sync ke Laravel gagal, tetap biarkan user login dengan Firebase
+          // User bisa login lagi nanti dan data akan sync
+          if (mounted) {
+            if (!firebaseUser.emailVerified) {
+              await firebaseUser.sendEmailVerification();
+              _showEmailVerificationDialog();
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Registrasi berhasil, tetapi gagal sync ke server: $e',
+                  ),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+          }
+        }
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = 'Registrasi gagal';
+        if (e.code == 'weak-password') {
+          errorMessage = 'Password terlalu lemah';
+        } else if (e.code == 'email-already-in-use') {
+          errorMessage = 'Email sudah terdaftar';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Email tidak valid';
+        } else {
+          errorMessage = e.message ?? 'Registrasi gagal';
+        }
 
         if (mounted) {
-          // Show success dialog
-          _showRegistrationSuccessDialog();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Registrasi gagal: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } finally {
@@ -269,15 +365,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _showRegistrationSuccessDialog() {
+  void _showEmailVerificationDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Registrasi Berhasil'),
+        title: const Text('Verifikasi Email'),
         content: const Text(
-          'Akun Anda telah berhasil dibuat! '
-          'Silakan login untuk melanjutkan.',
+          'Kami telah mengirim email verifikasi ke alamat email Anda. '
+          'Silakan cek inbox Anda dan klik link verifikasi untuk mengaktifkan akun.\n\n'
+          'Setelah email diverifikasi, Anda dapat login dengan akun yang baru dibuat.',
         ),
         actions: [
           TextButton(

@@ -3,6 +3,7 @@ import '../constants/colors.dart';
 import '../product_model.dart';
 import '../utils/page_transitions.dart';
 import 'material_selection_screen.dart';
+import '../services/product_service.dart';
 
 class CustomOrderScreen extends StatefulWidget {
   const CustomOrderScreen({super.key});
@@ -12,26 +13,33 @@ class CustomOrderScreen extends StatefulWidget {
 }
 
 class _CustomOrderScreenState extends State<CustomOrderScreen> {
-  final List<Product> _baseProducts = [
-    const Product(
-      name: 'Regular Fit Slagan',
-      image: 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-      description: 'Kaos polos berkualitas tinggi',
-      minPrice: 'Rp 89.000',
-    ),
-    const Product(
-      name: 'Regular Fit Polo',
-      image: 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-      description: 'Polo shirt elegan dan nyaman',
-      minPrice: 'Rp 129.000',
-    ),
-    const Product(
-      name: 'Regular Fit V-Neck',
-      image: 'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-      description: 'T-shirt V-neck stylish',
-      minPrice: 'Rp 99.000',
-    ),
-  ];
+  List<Product> _baseProducts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await ProductService.getProducts();
+      if (mounted) {
+        setState(() {
+          _baseProducts = products;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading products: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +225,41 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
   }
 
   Widget _buildProductGrid() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_baseProducts.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Tidak ada produk tersedia',
+                style: TextStyle(
+                  color: AppColors.textLight,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: GridView.builder(

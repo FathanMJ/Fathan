@@ -47,6 +47,9 @@ class LaravelApiService {
     }
 
     try {
+      print('🌐 Making $method request to: $uri');
+      print('📋 Headers: ${headers.keys}');
+      
       http.Response response;
 
       switch (method.toUpperCase()) {
@@ -82,17 +85,30 @@ class LaravelApiService {
           throw Exception('Unsupported HTTP method: $method');
       }
 
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      print('📥 Response status: ${response.statusCode}');
+      print('📦 Response body (first 500 chars): ${response.body.length > 500 ? response.body.substring(0, 500) : response.body}');
+      
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        print('❌ Failed to parse JSON: $e');
+        print('📄 Raw response: ${response.body}');
+        throw Exception('Invalid JSON response from server');
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ Request successful');
         return responseData;
       } else {
+        print('❌ Request failed with status ${response.statusCode}');
         throw Exception(
           responseData['message'] ?? 'Terjadi kesalahan pada server',
         );
       }
     } catch (e) {
-      if (e is http.ClientException) {
+      print('❌ Error in _makeRequest: $e');
+      if (e is http.ClientException || e.toString().contains('Failed host lookup')) {
         throw Exception('Gagal terhubung ke server. Periksa koneksi Anda.');
       }
       rethrow;

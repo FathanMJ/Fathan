@@ -133,7 +133,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.conversation.adminName,
+                    widget.conversation.adminName ?? 
+                    widget.conversation.pelangganName ?? 
+                    'Chat',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -141,7 +143,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ),
                   ),
                   Text(
-                    'Order: ${widget.conversation.orderId} - Produksi',
+                    widget.conversation.orderId != null
+                        ? 'Order: ${widget.conversation.orderId} - Produksi'
+                        : 'Chat',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.grey,

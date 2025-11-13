@@ -5,6 +5,7 @@ import '../product_model.dart';
 import 'material_model.dart';
 import '../models/order_item.dart';
 import 'cart_screen.dart';
+import '../services/master_data_service.dart';
 
 class AddItemScreen extends StatefulWidget {
   final Product selectedProduct;
@@ -40,24 +41,41 @@ class AddItemScreen extends StatefulWidget {
 
 class _AddItemScreenState extends State<AddItemScreen> {
   bool _isPlayer = true;
-  String _baseColor = 'Biru';
+  String? _baseColor;
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
-  final List<String> _colorOptions = [
-    'Biru',
-    'Merah',
-    'Hijau',
-    'Kuning',
-    'Hitam',
-    'Putih',
-    'Abu-abu',
-  ];
+  List<Map<String, dynamic>> _colorOptions = [];
+  bool _isLoadingColors = true;
 
   @override
   void initState() {
     super.initState();
     _quantityController.text = _isPlayer ? '15' : '2';
+    _loadWarna();
+  }
+
+  Future<void> _loadWarna() async {
+    try {
+      final warnas = await MasterDataService.getWarna();
+      if (mounted) {
+        setState(() {
+          _colorOptions = warnas;
+          _isLoadingColors = false;
+          // Auto-select first color if available
+          if (_colorOptions.isNotEmpty && _baseColor == null) {
+            _baseColor = _colorOptions.first['nama'];
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading warna: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingColors = false;
+        });
+      }
+    }
   }
 
   @override
@@ -350,15 +368,36 @@ class _AddItemScreenState extends State<AddItemScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          if (_isLoadingColors)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_colorOptions.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Tidak ada warna tersedia',
+                  style: TextStyle(color: AppColors.textLight),
+                ),
+              ),
+            )
+          else
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: _colorOptions.map((color) {
-              final isSelected = _baseColor == color;
+              children: _colorOptions.map((colorData) {
+                final colorName = colorData['nama'] ?? '';
+                final kodeHex = colorData['kode_hex'] as String?;
+                final isSelected = _baseColor == colorName;
+                
               return InkWell(
                 onTap: () {
                   setState(() {
-                    _baseColor = color;
+                      _baseColor = colorName;
                   });
                 },
                 child: Container(
@@ -375,12 +414,31 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       width: 2,
                     ),
                   ),
-                  child: Text(
-                    color,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (kodeHex != null && kodeHex.isNotEmpty)
+                          Container(
+                            width: 20,
+                            height: 20,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: _parseHexColor(kodeHex),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.borderColor,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          colorName,
                     style: TextStyle(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       color: isSelected ? AppColors.primary : AppColors.text,
                     ),
+                        ),
+                      ],
                   ),
                 ),
               );
@@ -389,6 +447,18 @@ class _AddItemScreenState extends State<AddItemScreen> {
         ],
       ),
     );
+  }
+
+  Color _parseHexColor(String hex) {
+    try {
+      hex = hex.replaceAll('#', '');
+      if (hex.length == 6) {
+        return Color(int.parse('FF$hex', radix: 16));
+      }
+    } catch (e) {
+      print('Error parsing hex color: $hex');
+    }
+    return AppColors.textLight;
   }
 
   Widget _buildQuantityInput() {
@@ -521,7 +591,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
           const SizedBox(height: 16),
           _buildSummaryRow('Tipe', _isPlayer ? 'Pemain' : 'Kiper'),
-          _buildSummaryRow('Warna', _baseColor),
+          _buildSummaryRow('Warna', _baseColor ?? '-'),
           _buildSummaryRow('Jumlah', '$totalQuantity pcs'),
           _buildSummaryRow('Harga per item', 'Rp ${itemPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}'),
           const Divider(),
@@ -628,7 +698,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   double _calculateItemPrice() {
-    double basePrice = 89000;
+    // Get base price from selected product (if available) or use default
+    double basePrice = double.tryParse(widget.selectedProduct.minPrice.replaceAll(RegExp(r'[^\d]'), '')) ?? 89000;
     double materialPrice = _getMaterialPrice();
     double sizeTypePrice = widget.sizeTypeData['priceAdjustment']?.toDouble() ?? 0;
     double sleevePrice = widget.sleeveData['priceAdjustment']?.toDouble() ?? 0;
@@ -639,18 +710,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   double _getMaterialPrice() {
-    switch (widget.selectedMaterial.name) {
-      case 'Cotton Combed 30s':
-        return 0;
-      case 'Cotton Combed 24s':
-        return 10000;
-      case 'Polyester':
-        return 5000;
-      case 'Fleece':
-        return 25000;
-      default:
-        return 0;
-    }
+    // Use priceIncreaseValue from selectedMaterial instead of hardcoded values
+    return widget.selectedMaterial.priceIncreaseValue.toDouble();
   }
 
   void _addToCart() {
@@ -673,7 +734,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       sizes: widget.selectedSizes,
       sleeveLength: widget.selectedSleeveLength,
       collarType: widget.selectedCollarType,
-      baseColor: _baseColor,
+      baseColor: _baseColor ?? '',
       totalQuantity: quantity,
       isPlayer: _isPlayer,
       designFile: widget.hasOwnDesign ? widget.designData['file'] : null,
@@ -708,7 +769,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             children: [
               Text('${_isPlayer ? 'Jersey Pemain' : 'Jersey Kiper'} berhasil ditambahkan!'),
               const SizedBox(height: 8),
-              Text('Warna: $_baseColor'),
+              Text('Warna: ${_baseColor ?? '-'}'),
               Text('Jumlah: $quantity pcs'),
               Text('Total: Rp ${orderItem.totalPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}'),
             ],

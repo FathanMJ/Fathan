@@ -3,6 +3,7 @@ import '../constants/colors.dart';
 import '../product_model.dart';
 import 'material_model.dart';
 import 'detail_size_screen.dart';
+import '../services/master_data_service.dart';
 
 class SizeSelectionScreen extends StatefulWidget {
   final Product selectedProduct;
@@ -20,27 +21,69 @@ class SizeSelectionScreen extends StatefulWidget {
 
 class _SizeSelectionScreenState extends State<SizeSelectionScreen> {
   String? _selectedSizeType;
+  List<Map<String, dynamic>> _sizeTypes = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _sizeTypes = [
-    {
-      'type': 'Anak',
-      'description': 'Ukuran untuk anak-anak (usia 3-12 tahun)',
-      'priceAdjustment': 0,
-      'icon': Icons.child_care,
-    },
-    {
-      'type': 'Dewasa',
-      'description': 'Ukuran standar untuk dewasa',
-      'priceAdjustment': 0,
-      'icon': Icons.person,
-    },
-    {
-      'type': 'Oversize',
-      'description': 'Ukuran besar dengan tambahan biaya',
-      'priceAdjustment': 15000,
-      'icon': Icons.open_in_full,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadSizeTypes();
+  }
+
+  Future<void> _loadSizeTypes() async {
+    try {
+      final sizeTypes = await MasterDataService.getSizeTypes();
+      if (mounted) {
+        setState(() {
+          _sizeTypes = sizeTypes.map((st) {
+            return {
+              'type': st['name'],
+              'description': _getSizeTypeDescription(st['name']),
+              'priceAdjustment': st['priceAdjustment'] ?? 0,
+              'icon': _getSizeTypeIcon(st['name']),
+            };
+          }).toList();
+          _isLoading = false;
+          
+          // Auto-select first option if available
+          if (_sizeTypes.isNotEmpty) {
+            _selectedSizeType = _sizeTypes.first['type'];
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading size types: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getSizeTypeDescription(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('anak') || lower.contains('child')) {
+      return 'Ukuran untuk anak-anak (usia 3-12 tahun)';
+    } else if (lower.contains('dewasa') || lower.contains('adult')) {
+      return 'Ukuran standar untuk dewasa';
+    } else if (lower.contains('oversize') || lower.contains('besar')) {
+      return 'Ukuran besar dengan tambahan biaya';
+    }
+    return 'Ukuran standar';
+  }
+
+  IconData _getSizeTypeIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('anak') || lower.contains('child')) {
+      return Icons.child_care;
+    } else if (lower.contains('dewasa') || lower.contains('adult')) {
+      return Icons.person;
+    } else if (lower.contains('oversize') || lower.contains('besar')) {
+      return Icons.open_in_full;
+    }
+    return Icons.straighten;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,6 +299,35 @@ class _SizeSelectionScreenState extends State<SizeSelectionScreen> {
   }
 
   Widget _buildSizeTypeList() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_sizeTypes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.straighten_outlined,
+              size: 64,
+              color: AppColors.textLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada jenis ukuran tersedia',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _sizeTypes.length,

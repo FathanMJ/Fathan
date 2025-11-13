@@ -3,6 +3,7 @@ import '../constants/colors.dart';
 import '../product_model.dart';
 import 'material_model.dart';
 import 'collar_type_screen.dart';
+import '../services/master_data_service.dart';
 
 class SleeveLengthScreen extends StatefulWidget {
   final Product selectedProduct;
@@ -26,41 +27,46 @@ class SleeveLengthScreen extends StatefulWidget {
 
 class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
   String? _selectedSleeveLength;
-
-  final List<Map<String, dynamic>> _sleeveOptions = [
-    {
-      'length': 'Lengan Pendek',
-      'description': 'Standard tanpa tambahan biaya',
-      'priceAdjustment': 0,
-      'icon': Icons.accessibility_new,
-      'applicable': ['Kaos', 'T-Shirt', 'Polo'],
-    },
-    {
-      'length': 'Lengan Panjang',
-      'description': 'Dengan tambahan biaya untuk kenyamanan ekstra',
-      'priceAdjustment': 25000,
-      'icon': Icons.checkroom,
-      'applicable': ['Kaos', 'T-Shirt', 'Polo', 'Hoodie', 'Kemeja'],
-    },
-    {
-      'length': 'Tanpa Lengan',
-      'description': 'Sleeveless atau tank top',
-      'priceAdjustment': -10000,
-      'icon': Icons.whatshot,
-      'applicable': ['Kaos', 'T-Shirt'],
-    },
-  ];
+  List<Map<String, dynamic>> _sleeveOptions = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Auto-select default option if only one applicable
-    final applicableOptions = _sleeveOptions
-        .where((option) => option['applicable'].contains(widget.selectedProduct.name))
-        .toList();
-    
-    if (applicableOptions.length == 1) {
-      _selectedSleeveLength = applicableOptions.first['length'];
+    _loadSleeveLengths();
+  }
+
+  Future<void> _loadSleeveLengths() async {
+    try {
+      final sleeveLengths = await MasterDataService.getSleeveLengths();
+      if (mounted) {
+        setState(() {
+          _sleeveOptions = sleeveLengths;
+          _isLoading = false;
+
+          // Auto-select first option if available
+          if (_sleeveOptions.isNotEmpty) {
+            final applicableOptions = _sleeveOptions
+                .where(
+                  (option) => option['applicable'].contains(
+                    widget.selectedProduct.name,
+                  ),
+                )
+                .toList();
+
+            if (applicableOptions.isNotEmpty) {
+              _selectedSleeveLength = applicableOptions.first['length'];
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading sleeve lengths: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -71,10 +77,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
       appBar: AppBar(
         title: const Text(
           'Panjang Lengan',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.text,
@@ -82,10 +85,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: AppColors.borderColor,
-          ),
+          child: Container(height: 1, color: AppColors.borderColor),
         ),
       ),
       body: Column(
@@ -152,10 +152,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
           const SizedBox(height: 12),
           Text(
             'Pilih panjang lengan yang sesuai untuk ${widget.selectedProduct.name}',
-            style: const TextStyle(
-              color: AppColors.textLight,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: AppColors.textLight, fontSize: 14),
           ),
         ],
       ),
@@ -252,8 +249,12 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 9,
-              color: (isActive || isDone) ? AppColors.text : AppColors.textLight,
-              fontWeight: (isActive || isDone) ? FontWeight.w600 : FontWeight.normal,
+              color: (isActive || isDone)
+                  ? AppColors.text
+                  : AppColors.textLight,
+              fontWeight: (isActive || isDone)
+                  ? FontWeight.w600
+                  : FontWeight.normal,
             ),
           ),
         ],
@@ -278,9 +279,36 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
   }
 
   Widget _buildSleeveOptions() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final applicableOptions = _sleeveOptions
-        .where((option) => option['applicable'].contains(widget.selectedProduct.name))
+        .where(
+          (option) =>
+              option['applicable'].contains(widget.selectedProduct.name),
+        )
         .toList();
+
+    if (applicableOptions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.checkroom_outlined,
+              size: 64,
+              color: AppColors.textLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada opsi panjang lengan tersedia',
+              style: TextStyle(color: AppColors.textLight, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -294,7 +322,10 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
     );
   }
 
-  Widget _buildSleeveOptionCard(Map<String, dynamic> sleeveOption, bool isSelected) {
+  Widget _buildSleeveOptionCard(
+    Map<String, dynamic> sleeveOption,
+    bool isSelected,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -343,7 +374,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
                   ),
                 ),
                 child: Icon(
-                  sleeveOption['icon'],
+                  sleeveOption['iconData'] ?? Icons.checkroom,
                   color: isSelected ? AppColors.primary : AppColors.textLight,
                   size: 24,
                 ),
@@ -388,8 +419,8 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
                   sleeveOption['priceAdjustment'] == 0
                       ? 'Standard'
                       : sleeveOption['priceAdjustment'] > 0
-                          ? '+ Rp ${sleeveOption['priceAdjustment'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}'
-                          : 'Rp ${sleeveOption['priceAdjustment'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                      ? '+ Rp ${sleeveOption['priceAdjustment'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}'
+                      : 'Rp ${sleeveOption['priceAdjustment'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isSelected ? AppColors.primary : AppColors.text,
@@ -451,10 +482,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
         ),
         child: const Text(
           'Pilih Kerah',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

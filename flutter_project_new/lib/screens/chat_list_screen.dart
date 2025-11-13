@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/chat_conversation.dart';
 import 'chat_room_screen.dart';
+import '../services/laravel_api_service.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -11,29 +12,44 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final List<ChatConversation> _conversations = [
-    ChatConversation(
-      adminName: 'Admin Toko',
-      lastMessage: 'Baik, pesanan Anda sedang kami proses.',
-      lastMessageDate: DateTime.now().subtract(const Duration(minutes: 5)),
-      isRead: false,
-      orderId: 'MUARA-001',
-    ),
-    ChatConversation(
-      adminName: 'Admin Desain',
-      lastMessage: 'Revisi desain sudah selesai, silahkan diperiksa.',
-      lastMessageDate: DateTime.now().subtract(const Duration(hours: 2)),
-      isRead: true,
-      orderId: 'MUARA-002',
-    ),
-    ChatConversation(
-      adminName: 'Admin Toko',
-      lastMessage: 'Selamat datang di Muara! Ada yang bisa dibantu?',
-      lastMessageDate: DateTime.now().subtract(const Duration(days: 1)),
-      isRead: true,
-      orderId: 'MUARA-003',
-    ),
-  ];
+  List<ChatConversation> _conversations = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversations();
+  }
+
+  Future<void> _loadConversations() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final response = await LaravelApiService.get('/chat/rooms');
+      final roomsData = response['data'] ?? [];
+
+      if (mounted) {
+        setState(() {
+          _conversations = (roomsData as List).map((room) {
+            return ChatConversation.fromJson(room);
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading conversations: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Gagal memuat percakapan. Silakan coba lagi.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,12 +114,61 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
           // Chat list
           Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : _errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.grey),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadConversations,
+                              child: const Text('Coba Lagi'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _conversations.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Belum ada percakapan',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadConversations,
             child: ListView.builder(
               itemCount: _conversations.length,
               itemBuilder: (context, index) {
                 final conversation = _conversations[index];
                 return _buildChatItem(conversation);
               },
+                            ),
             ),
           ),
         ],
@@ -156,7 +221,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      conversation.adminName[0],
+                      (conversation.adminName ?? conversation.pelangganName ?? 'A')[0].toUpperCase(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -175,7 +240,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              conversation.adminName,
+                              conversation.adminName ?? conversation.pelangganName ?? 'Chat',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: conversation.isRead ? FontWeight.w500 : FontWeight.bold,
@@ -221,6 +286,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           ],
                         ],
                       ),
+                      if (conversation.orderId != null) ...[
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -237,6 +303,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           ),
                         ),
                       ),
+                      ],
                     ],
                   ),
                 ),

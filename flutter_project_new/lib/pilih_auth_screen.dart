@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'register_screen.dart';
 import 'login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'services/laravel_api_service.dart';
 import 'home_screen.dart';
 
 class PilihAuthScreen extends StatelessWidget {
@@ -234,6 +235,21 @@ Future<void> _signInWithGoogle(BuildContext context) async {
       final googleProvider = GoogleAuthProvider();
       googleProvider.setCustomParameters({'prompt': 'select_account'});
       userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      
+      // After Firebase sign-in on web, sync with Laravel
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (idToken != null) {
+        final resp = await LaravelApiService.post(
+          '/login/firebase',
+          body: { 'id_token': idToken },
+          requiresAuth: false,
+        );
+        final data = resp['data'] as Map<String, dynamic>?;
+        final token = data != null ? data['token'] as String? : null;
+        if (token != null) {
+          await LaravelApiService.saveToken(token);
+        }
+      }
     } else {
       // Android/iOS: gunakan plugin google_sign_in
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
@@ -245,6 +261,21 @@ Future<void> _signInWithGoogle(BuildContext context) async {
         idToken: googleAuth.idToken,
       );
       userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      
+      // After Firebase sign-in on mobile, sync with Laravel
+      final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (idToken != null) {
+        final resp = await LaravelApiService.post(
+          '/login/firebase',
+          body: { 'id_token': idToken },
+          requiresAuth: false,
+        );
+        final data = resp['data'] as Map<String, dynamic>?;
+        final token = data != null ? data['token'] as String? : null;
+        if (token != null) {
+          await LaravelApiService.saveToken(token);
+        }
+      }
     }
     if (context.mounted) {
       // Opsional: info singkat

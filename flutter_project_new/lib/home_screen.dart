@@ -9,6 +9,7 @@ import 'utils/page_transitions.dart';
 import 'pilih_auth_screen.dart';
 import 'dart:ui' as ui;
 import 'services/auth_service.dart';
+import 'services/product_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -137,56 +138,9 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
     'https://placehold.co/600x200/FFD700/000000?text=GRATIS+ONGKIR',
   ];
 
-  final List<Map<String, dynamic>> _products = [
-    {
-      'name': 'Regular Fit Slagan',
-      'price': 'Rp 179.000',
-      'image':
-          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-    },
-    {
-      'name': 'Regular Fit Polo',
-      'price': 'Rp 1.100.000',
-      'discounted_price': 'Rp 520.000',
-      'image':
-          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-    },
-    {
-      'name': 'Regular Fit Black',
-      'price': 'Rp 169.000',
-      'image':
-          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-    },
-    {
-      'name': 'Regular Fit V-Neck',
-      'price': 'Rp 129.000',
-      'image':
-          'https://instagram.fcgk34-1.fna.fbcdn.net/v/t51.2885-15/495847179_18402765463111437_2907903918493001001_n.webp?efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTQ0MC5zZHIuZjc1NzYxLmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=instagram.fcgk34-1.fna.fbcdn.net&_nc_cat=109&_nc_oc=Q6cZ2QGDDKtHgIUwCjAy4YgvYrovAv-eKiJt2gkfPFoQ509H-qGCNW3ZoI4NVPpEG86PPGE&_nc_ohc=br8qiFZp9isQ7kNvwHzOCKO&_nc_gid=Q-fYY76dLRTJt6MJTclv_g&edm=APoiHPcBAAAA&ccb=7-5&ig_cache_key=MzYyNTczMjA1MDkyNzY3NjM3Mg%3D%3D.3-ccb7-5&oh=00_AfY8wXUgewG_oX7bGas7KcvHHXZVGP8SAr2HAWZrf3yjKQ&oe=68DA8473&_nc_sid=22de04',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _customTemplates = [
-    {
-      'name': 'T-Shirt Polos',
-      'image':
-          'https://placehold.co/600x400/FFFFFF/000000?text=T-Shirt+Template',
-      'variants': ['Lengan Pendek', 'Lengan Panjang'],
-      'minPrice': 'Rp 89.000',
-    },
-    {
-      'name': 'Polo Shirt',
-      'image': 'https://placehold.co/600x400/FFFFFF/000000?text=Polo+Template',
-      'variants': ['Regular Fit', 'Slim Fit'],
-      'minPrice': 'Rp 129.000',
-    },
-    {
-      'name': 'Hoodie',
-      'image':
-          'https://placehold.co/600x400/FFFFFF/000000?text=Hoodie+Template',
-      'variants': ['Dengan Resleting', 'Tanpa Resleting'],
-      'minPrice': 'Rp 199.000',
-    },
-  ];
+  List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _customTemplates = [];
+  bool _isProductsLoading = true;
 
   final PageController _pageController = PageController(initialPage: 0);
   Timer? _timer;
@@ -201,6 +155,39 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
     _loadUser();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final products = await ProductService.getProducts();
+      if (mounted) {
+        setState(() {
+          _products = products.map((p) {
+            return {'name': p.name, 'price': p.minPrice, 'image': p.image};
+          }).toList();
+
+          // Set custom templates from products (take first 3)
+          _customTemplates = products.take(3).map((p) {
+            return {
+              'name': p.name,
+              'image': p.image,
+              'variants': ['Lengan Pendek', 'Lengan Panjang'],
+              'minPrice': p.minPrice,
+            };
+          }).toList();
+
+          _isProductsLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading products: $e');
+      if (mounted) {
+        setState(() {
+          _isProductsLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -909,6 +896,35 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
   }
 
   Widget _buildProductGrid() {
+    if (_isProductsLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_products.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Tidak ada produk tersedia',
+                style: TextStyle(color: AppColors.textLight, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: GridView.builder(

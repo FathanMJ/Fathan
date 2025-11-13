@@ -1,63 +1,168 @@
 import 'laravel_api_service.dart';
 import '../config/api_config.dart';
+import '../product_model.dart';
 
 class ProductService {
   // Get all products
-  static Future<List<Map<String, dynamic>>> getAllProducts() async {
+  static Future<List<Product>> getProducts({
+    String? search,
+    int? kategoriId,
+  }) async {
     try {
-      final response = await LaravelApiService.get(ApiConfig.produk);
-      return List<Map<String, dynamic>>.from(response['data'] ?? []);
-    } catch (e) {
-      print('Error fetching products: $e');
-      rethrow;
+      String endpoint = ApiConfig.produk;
+      List<String> queryParams = [];
+      
+      if (search != null && search.isNotEmpty) {
+        queryParams.add('search=$search');
+      }
+      if (kategoriId != null) {
+        queryParams.add('kategori_id=$kategoriId');
+      }
+      
+      if (queryParams.isNotEmpty) {
+        endpoint += '?${queryParams.join('&')}';
+      }
+      
+      print('🔍 Fetching products from: $endpoint');
+      final response = await LaravelApiService.get(endpoint, requiresAuth: false);
+      print('✅ Response received: ${response.keys}');
+      
+      // Handle pagination response structure
+      // Laravel paginate returns: { success: true, data: { data: [...], current_page: 1, ... } }
+      dynamic productsData;
+      if (response['data'] != null) {
+        if (response['data'] is Map && response['data']['data'] != null) {
+          // Pagination response
+          productsData = response['data']['data'];
+          print('📦 Found ${productsData.length} products (paginated)');
+        } else if (response['data'] is List) {
+          // Direct list response
+          productsData = response['data'];
+          print('📦 Found ${productsData.length} products (direct list)');
+        } else {
+          productsData = [];
+          print('⚠️ Unexpected data structure: ${response['data'].runtimeType}');
+        }
+      } else {
+        productsData = [];
+        print('⚠️ No data field in response');
+      }
+      
+      if (productsData == null || productsData.isEmpty) {
+        print('⚠️ No products found in response');
+        return [];
+      }
+      
+      return productsData.map<Product>((item) {
+        // Get first photo URL if available
+        String imageUrl = '';
+        if (item['fotos'] != null && item['fotos'].isNotEmpty) {
+          final firstFoto = item['fotos'][0];
+          if (firstFoto['nama_file'] != null) {
+            // Extract URL from storage path
+            // Path format: "public/produk/xxx.jpg" -> "produk/xxx.jpg"
+            String fotoPath = firstFoto['nama_file'];
+            if (fotoPath.startsWith('public/')) {
+              fotoPath = fotoPath.replaceFirst('public/', '');
+            }
+            // Build URL: http://10.0.2.2:8000/storage/produk/xxx.jpg
+            String baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+            imageUrl = '$baseUrl/storage/$fotoPath';
+            print('🖼️ Image URL: $imageUrl');
+          }
+        }
+        
+        // If no photo, use placeholder
+        if (imageUrl.isEmpty) {
+          imageUrl = 'https://placehold.co/600x400/CCCCCC/666666?text=${Uri.encodeComponent(item['nama'] ?? 'Product')}';
+          print('🖼️ Using placeholder for: ${item['nama']}');
+        }
+        
+        // Parse harga_dasar - bisa string atau num
+        double hargaDasar = 0;
+        if (item['harga_dasar'] != null) {
+          if (item['harga_dasar'] is String) {
+            hargaDasar = double.tryParse(item['harga_dasar']) ?? 0;
+          } else if (item['harga_dasar'] is num) {
+            hargaDasar = (item['harga_dasar'] as num).toDouble();
+          }
+        }
+        
+        // Format harga dengan titik sebagai pemisah ribuan
+        String formattedPrice = hargaDasar.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+        
+        return Product(
+          id: item['id_produk'] ?? item['id'],
+          name: item['nama'] ?? '',
+          image: imageUrl,
+          description: item['deskripsi'] ?? '',
+          minPrice: 'Rp $formattedPrice',
+        );
+      }).toList();
+    } catch (e, stackTrace) {
+      print('❌ Error fetching products: $e');
+      print('📍 Stack trace: $stackTrace');
+      return [];
     }
   }
 
   // Get product by ID
-  static Future<Map<String, dynamic>> getProductById(int id) async {
+  static Future<Product?> getProductById(int id) async {
     try {
-      final response = await LaravelApiService.get('${ApiConfig.produk}/$id');
-      return response['data'];
+      final response = await LaravelApiService.get(
+        '${ApiConfig.produk}/$id',
+        requiresAuth: false,
+      );
+      
+      final item = response['data'];
+      if (item == null) return null;
+      
+      // Get first photo URL if available
+      String imageUrl = '';
+      if (item['fotos'] != null && item['fotos'].isNotEmpty) {
+        final firstFoto = item['fotos'][0];
+        if (firstFoto['nama_file'] != null) {
+          String fotoPath = firstFoto['nama_file'];
+          if (fotoPath.startsWith('public/')) {
+            fotoPath = fotoPath.replaceFirst('public/', '');
+          }
+          imageUrl = '${ApiConfig.baseUrl.replaceAll('/api', '')}/storage/$fotoPath';
+        }
+      }
+      
+      if (imageUrl.isEmpty) {
+        imageUrl = 'https://placehold.co/600x400/CCCCCC/666666?text=${item['nama'] ?? 'Product'}';
+  }
+
+      // Parse harga_dasar - bisa string atau num
+      double hargaDasar = 0;
+      if (item['harga_dasar'] != null) {
+        if (item['harga_dasar'] is String) {
+          hargaDasar = double.tryParse(item['harga_dasar']) ?? 0;
+        } else if (item['harga_dasar'] is num) {
+          hargaDasar = (item['harga_dasar'] as num).toDouble();
+        }
+      }
+      
+      // Format harga dengan titik sebagai pemisah ribuan
+      String formattedPrice = hargaDasar.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
+      
+      return Product(
+        id: item['id_produk'] ?? item['id'],
+        name: item['nama'] ?? '',
+        image: imageUrl,
+        description: item['deskripsi'] ?? '',
+        minPrice: 'Rp $formattedPrice',
+      );
     } catch (e) {
       print('Error fetching product: $e');
-      rethrow;
-    }
-  }
-
-  // Search products
-  static Future<List<Map<String, dynamic>>> searchProducts(String query) async {
-    try {
-      final response = await LaravelApiService.get(
-        '${ApiConfig.produk}/search?q=$query',
-      );
-      return List<Map<String, dynamic>>.from(response['data'] ?? []);
-    } catch (e) {
-      print('Error searching products: $e');
-      rethrow;
-    }
-  }
-
-  // Get products by category
-  static Future<List<Map<String, dynamic>>> getProductsByCategory(
-    int categoryId,
-  ) async {
-    try {
-      final response = await LaravelApiService.get(
-        '${ApiConfig.produk}/kategori/$categoryId',
-      );
-      return List<Map<String, dynamic>>.from(response['data'] ?? []);
-    } catch (e) {
-      print('Error fetching products by category: $e');
-      rethrow;
+      return null;
     }
   }
 }
-
-
-
-
-
-
-
-
-

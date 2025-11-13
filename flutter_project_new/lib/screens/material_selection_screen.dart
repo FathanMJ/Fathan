@@ -3,6 +3,7 @@ import '../constants/colors.dart';
 import '../product_model.dart';
 import 'material_model.dart';
 import 'size_selection_screen.dart';
+import '../services/master_data_service.dart';
 
 class MaterialSelectionScreen extends StatefulWidget {
   final Product selectedProduct;
@@ -15,30 +16,34 @@ class MaterialSelectionScreen extends StatefulWidget {
 }
 
 class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
-  final List<MaterialModel> _materials = [
-    const MaterialModel(
-      name: 'Cotton Combed 30s',
-      description: 'Tipis, adem, dan menyerap keringat.',
-      priceIncrease: '+ Rp 0',
-    ),
-    const MaterialModel(
-      name: 'Cotton Combed 24s',
-      description: 'Lebih tebal dari 30s, standar distro.',
-      priceIncrease: '+ Rp 10.000',
-    ),
-    const MaterialModel(
-      name: 'Polyester',
-      description: 'Cocok untuk jersey, tidak mudah kusut.',
-      priceIncrease: '+ Rp 5.000',
-    ),
-    const MaterialModel(
-      name: 'Fleece',
-      description: 'Bahan tebal dan hangat, cocok untuk hoodie.',
-      priceIncrease: '+ Rp 25.000',
-    ),
-  ];
-
+  List<MaterialModel> _materials = [];
   MaterialModel? _selectedMaterial;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaterials();
+  }
+
+  Future<void> _loadMaterials() async {
+    try {
+      final materials = await MasterDataService.getMaterials();
+      if (mounted) {
+        setState(() {
+          _materials = materials;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading materials: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +257,35 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
   }
 
   Widget _buildMaterialList() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_materials.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: AppColors.textLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada material tersedia',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _materials.length,
