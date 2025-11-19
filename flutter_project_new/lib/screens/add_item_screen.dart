@@ -10,8 +10,6 @@ import '../services/master_data_service.dart';
 class AddItemScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
   final Map<String, int> selectedSizes;
   final String selectedSleeveLength;
   final Map<String, dynamic> sleeveData;
@@ -24,8 +22,6 @@ class AddItemScreen extends StatefulWidget {
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
     required this.selectedSizes,
     required this.selectedSleeveLength,
     required this.sleeveData,
@@ -701,12 +697,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
     // Get base price from selected product (if available) or use default
     double basePrice = double.tryParse(widget.selectedProduct.minPrice.replaceAll(RegExp(r'[^\d]'), '')) ?? 89000;
     double materialPrice = _getMaterialPrice();
-    double sizeTypePrice = widget.sizeTypeData['priceAdjustment']?.toDouble() ?? 0;
     double sleevePrice = widget.sleeveData['priceAdjustment']?.toDouble() ?? 0;
     double collarPrice = widget.collarData['priceAdjustment']?.toDouble() ?? 0;
     double designPrice = widget.designData['price']?.toDouble() ?? 0;
     
-    return basePrice + materialPrice + sizeTypePrice + sleevePrice + collarPrice + designPrice;
+    return basePrice + materialPrice + sleevePrice + collarPrice + designPrice;
   }
 
   double _getMaterialPrice() {
@@ -730,7 +725,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       id: Random().nextInt(1000000).toString(),
       productName: widget.selectedProduct.name,
       materialName: widget.selectedMaterial.name,
-      sizeType: widget.selectedSizeType,
       sizes: widget.selectedSizes,
       sleeveLength: widget.selectedSleeveLength,
       collarType: widget.selectedCollarType,
@@ -741,7 +735,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       templateName: widget.hasOwnDesign ? null : widget.designData['name'],
       basePrice: 89000,
       materialPrice: _getMaterialPrice(),
-      sizeTypePrice: widget.sizeTypeData['priceAdjustment']?.toDouble() ?? 0,
       sleevePrice: widget.sleeveData['priceAdjustment']?.toDouble() ?? 0,
       collarPrice: widget.collarData['priceAdjustment']?.toDouble() ?? 0,
       designPrice: widget.designData['price']?.toDouble() ?? 0,

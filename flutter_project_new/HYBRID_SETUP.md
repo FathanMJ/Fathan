@@ -123,9 +123,19 @@ final orders = await OrderService.getUserOrders();
 
 // Create order
 final order = await OrderService.createOrder(
-  items: [...],
-  shippingAddress: 'Jalan ...',
+  items: [
+    {
+      'varian_id': 1,
+      'jumlah': 2,
+    },
+  ],
+  shippingAddress: 'Jalan Melati No. 5, Bandung',
+  paymentMethod: 'midtrans', // atau 'cod'
 );
+
+if (order['payment']?['snap_redirect_url'] != null) {
+  await PaymentService.launchSnapUrl(order['payment']['snap_redirect_url']);
+}
 
 // Track order
 final tracking = await OrderService.trackOrder('RESI123');
@@ -219,6 +229,9 @@ Jika ada masalah:
 **Status:** ✅ Ready to Use!
 **Setup Time:** ~5 minutes
 **Difficulty:** Easy
+
+
+
 
 
 

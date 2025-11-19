@@ -8,16 +8,12 @@ import '../services/master_data_service.dart';
 class SleeveLengthScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
   final Map<String, int> selectedSizes;
 
   const SleeveLengthScreen({
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
     required this.selectedSizes,
   });
 
@@ -180,11 +176,9 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
           _buildStepConnector(true),
           _buildStepBox('2', 'Pilih\nBahan', false, isDone: true),
           _buildStepConnector(true),
-          _buildStepBox('3', 'Pilih\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('4', 'Detail\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('5', 'Upload\nDesain', true),
+          _buildStepBox('3', 'Detail\nUkuran', true),
+          _buildStepConnector(false),
+          _buildStepBox('4', 'Upload\nDesain', false),
         ],
       ),
     );
@@ -458,8 +452,6 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
                     builder: (context) => CollarTypeScreen(
                       selectedProduct: widget.selectedProduct,
                       selectedMaterial: widget.selectedMaterial,
-                      selectedSizeType: widget.selectedSizeType,
-                      sizeTypeData: widget.sizeTypeData,
                       selectedSizes: widget.selectedSizes,
                       selectedSleeveLength: _selectedSleeveLength!,
                       sleeveData: _sleeveOptions.firstWhere(

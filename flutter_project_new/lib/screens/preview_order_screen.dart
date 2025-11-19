@@ -6,8 +6,6 @@ import 'material_model.dart';
 class PreviewOrderScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
   final Map<String, int> selectedSizes;
   final String selectedSleeveLength;
   final Map<String, dynamic> sleeveData;
@@ -18,8 +16,6 @@ class PreviewOrderScreen extends StatefulWidget {
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
     required this.selectedSizes,
     required this.selectedSleeveLength,
     required this.sleeveData,
@@ -48,11 +44,10 @@ class _PreviewOrderScreenState extends State<PreviewOrderScreen> {
     // Calculate total price
     double basePrice = 89000; // Base price for the product
     double materialPrice = _getMaterialPrice();
-    double sizeTypePrice = widget.sizeTypeData['priceAdjustment']?.toDouble() ?? 0;
     double sleevePrice = widget.sleeveData['priceAdjustment']?.toDouble() ?? 0;
     double designPrice = widget.designData['price']?.toDouble() ?? 0;
     
-    double pricePerItem = basePrice + materialPrice + sizeTypePrice + sleevePrice + designPrice;
+    double pricePerItem = basePrice + materialPrice + sleevePrice + designPrice;
     _totalPrice = pricePerItem * _totalQuantity;
   }
 
@@ -229,7 +224,6 @@ class _PreviewOrderScreenState extends State<PreviewOrderScreen> {
           const SizedBox(height: 16),
           _buildDetailRow('Produk', widget.selectedProduct.name),
           _buildDetailRow('Bahan', widget.selectedMaterial.name),
-          _buildDetailRow('Jenis Ukuran', widget.selectedSizeType),
           _buildDetailRow('Panjang Lengan', widget.selectedSleeveLength),
           _buildDetailRow(
             'Desain',
@@ -328,8 +322,6 @@ class _PreviewOrderScreenState extends State<PreviewOrderScreen> {
           const SizedBox(height: 16),
           _buildPriceRow('Harga Dasar', 89000),
           _buildPriceRow('Bahan (${widget.selectedMaterial.name})', _getMaterialPrice()),
-          if (widget.sizeTypeData['priceAdjustment'] > 0)
-            _buildPriceRow('Jenis Ukuran (${widget.selectedSizeType})', widget.sizeTypeData['priceAdjustment']),
           if (widget.sleeveData['priceAdjustment'] != 0)
             _buildPriceRow('Panjang Lengan', widget.sleeveData['priceAdjustment']),
           if (widget.designData['price'] > 0)

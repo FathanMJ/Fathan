@@ -7,15 +7,11 @@ import 'sleeve_length_screen.dart';
 class DetailSizeScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
 
   const DetailSizeScreen({
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
   });
 
   @override
@@ -116,10 +112,10 @@ class _DetailSizeScreenState extends State<DetailSizeScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: Text(
-                  'Detail Ukuran - ${widget.selectedSizeType}',
-                  style: const TextStyle(
+                  'Detail Ukuran',
+                  style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: AppColors.text,
@@ -162,11 +158,9 @@ class _DetailSizeScreenState extends State<DetailSizeScreen> {
           _buildStepConnector(true),
           _buildStepBox('2', 'Pilih\nBahan', false, isDone: true),
           _buildStepConnector(true),
-          _buildStepBox('3', 'Pilih\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('4', 'Detail\nUkuran', true),
+          _buildStepBox('3', 'Detail\nUkuran', true),
           _buildStepConnector(false),
-          _buildStepBox('5', 'Preview &\nCheckout', false),
+          _buildStepBox('4', 'Upload\nDesain', false),
         ],
       ),
     );
@@ -458,8 +452,6 @@ class _DetailSizeScreenState extends State<DetailSizeScreen> {
                         builder: (context) => SleeveLengthScreen(
                           selectedProduct: widget.selectedProduct,
                           selectedMaterial: widget.selectedMaterial,
-                          selectedSizeType: widget.selectedSizeType,
-                          sizeTypeData: widget.sizeTypeData,
                           selectedSizes: _sizeQuantities,
                         ),
                       ),

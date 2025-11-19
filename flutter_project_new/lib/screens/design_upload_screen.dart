@@ -7,8 +7,6 @@ import 'add_item_screen.dart';
 class DesignUploadScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
   final Map<String, int> selectedSizes;
   final String selectedSleeveLength;
   final Map<String, dynamic> sleeveData;
@@ -19,8 +17,6 @@ class DesignUploadScreen extends StatefulWidget {
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
     required this.selectedSizes,
     required this.selectedSleeveLength,
     required this.sleeveData,
@@ -177,11 +173,9 @@ class _DesignUploadScreenState extends State<DesignUploadScreen> {
           _buildStepConnector(true),
           _buildStepBox('2', 'Pilih\nBahan', false, isDone: true),
           _buildStepConnector(true),
-          _buildStepBox('3', 'Pilih\nUkuran', false, isDone: true),
+          _buildStepBox('3', 'Detail\nUkuran', false, isDone: true),
           _buildStepConnector(true),
-          _buildStepBox('4', 'Detail\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('5', 'Upload\nDesain', true),
+          _buildStepBox('4', 'Upload\nDesain', true),
         ],
       ),
     );
@@ -657,8 +651,6 @@ class _DesignUploadScreenState extends State<DesignUploadScreen> {
                     builder: (context) => AddItemScreen(
                       selectedProduct: widget.selectedProduct,
                       selectedMaterial: widget.selectedMaterial,
-                      selectedSizeType: widget.selectedSizeType,
-                      sizeTypeData: widget.sizeTypeData,
                       selectedSizes: widget.selectedSizes,
                       selectedSleeveLength: widget.selectedSleeveLength,
                       sleeveData: widget.sleeveData,

@@ -2,7 +2,6 @@ class OrderItem {
   final String id;
   final String productName;
   final String materialName;
-  final String sizeType; // Anak, Dewasa, Oversize
   final Map<String, int> sizes; // S: 2, M: 5, L: 8, etc.
   final String sleeveLength;
   final String collarType;
@@ -13,7 +12,6 @@ class OrderItem {
   final String? templateName; // for template selection
   final double basePrice;
   final double materialPrice;
-  final double sizeTypePrice;
   final double sleevePrice;
   final double collarPrice;
   final double designPrice;
@@ -23,7 +21,6 @@ class OrderItem {
     required this.id,
     required this.productName,
     required this.materialName,
-    required this.sizeType,
     required this.sizes,
     required this.sleeveLength,
     required this.collarType,
@@ -34,7 +31,6 @@ class OrderItem {
     this.templateName,
     required this.basePrice,
     required this.materialPrice,
-    required this.sizeTypePrice,
     required this.sleevePrice,
     required this.collarPrice,
     required this.designPrice,
@@ -46,7 +42,6 @@ class OrderItem {
       'id': id,
       'productName': productName,
       'materialName': materialName,
-      'sizeType': sizeType,
       'sizes': sizes,
       'sleeveLength': sleeveLength,
       'collarType': collarType,
@@ -57,7 +52,6 @@ class OrderItem {
       'templateName': templateName,
       'basePrice': basePrice,
       'materialPrice': materialPrice,
-      'sizeTypePrice': sizeTypePrice,
       'sleevePrice': sleevePrice,
       'collarPrice': collarPrice,
       'designPrice': designPrice,
@@ -70,7 +64,6 @@ class OrderItem {
       id: json['id'],
       productName: json['productName'],
       materialName: json['materialName'],
-      sizeType: json['sizeType'],
       sizes: Map<String, int>.from(json['sizes']),
       sleeveLength: json['sleeveLength'],
       collarType: json['collarType'],
@@ -81,7 +74,6 @@ class OrderItem {
       templateName: json['templateName'],
       basePrice: json['basePrice'].toDouble(),
       materialPrice: json['materialPrice'].toDouble(),
-      sizeTypePrice: json['sizeTypePrice'].toDouble(),
       sleevePrice: json['sleevePrice'].toDouble(),
       collarPrice: json['collarPrice'].toDouble(),
       designPrice: json['designPrice'].toDouble(),

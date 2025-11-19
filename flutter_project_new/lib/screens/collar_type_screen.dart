@@ -8,8 +8,6 @@ import '../services/master_data_service.dart';
 class CollarTypeScreen extends StatefulWidget {
   final Product selectedProduct;
   final MaterialModel selectedMaterial;
-  final String selectedSizeType;
-  final Map<String, dynamic> sizeTypeData;
   final Map<String, int> selectedSizes;
   final String selectedSleeveLength;
   final Map<String, dynamic> sleeveData;
@@ -18,8 +16,6 @@ class CollarTypeScreen extends StatefulWidget {
     super.key,
     required this.selectedProduct,
     required this.selectedMaterial,
-    required this.selectedSizeType,
-    required this.sizeTypeData,
     required this.selectedSizes,
     required this.selectedSleeveLength,
     required this.sleeveData,
@@ -189,11 +185,9 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
           _buildStepConnector(true),
           _buildStepBox('2', 'Pilih\nBahan', false, isDone: true),
           _buildStepConnector(true),
-          _buildStepBox('3', 'Pilih\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('4', 'Detail\nUkuran', false, isDone: true),
-          _buildStepConnector(true),
-          _buildStepBox('5', 'Pilih\nKerah', true),
+          _buildStepBox('3', 'Detail\nUkuran', true),
+          _buildStepConnector(false),
+          _buildStepBox('4', 'Upload\nDesain', false),
         ],
       ),
     );
@@ -460,8 +454,6 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
                     builder: (context) => DesignUploadScreen(
                       selectedProduct: widget.selectedProduct,
                       selectedMaterial: widget.selectedMaterial,
-                      selectedSizeType: widget.selectedSizeType,
-                      sizeTypeData: widget.sizeTypeData,
                       selectedSizes: widget.selectedSizes,
                       selectedSleeveLength: widget.selectedSleeveLength,
                       sleeveData: widget.sleeveData,

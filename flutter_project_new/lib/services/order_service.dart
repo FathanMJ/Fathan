@@ -28,6 +28,9 @@ class OrderService {
   static Future<Map<String, dynamic>> createOrder({
     required List<Map<String, dynamic>> items,
     required String shippingAddress,
+    String paymentMethod = 'midtrans',
+    int? shippingCostId,
+    int? discountId,
     String? notes,
   }) async {
     try {
@@ -35,11 +38,14 @@ class OrderService {
         ApiConfig.pesanan,
         body: {
           'items': items,
-          'shipping_address': shippingAddress,
-          'notes': notes,
+          'alamat_pengiriman': shippingAddress,
+          'metode_pembayaran': paymentMethod,
+          'ongkir_id': shippingCostId,
+          'diskon_id': discountId,
+          'catatan': notes,
         },
       );
-      return response['data'];
+      return Map<String, dynamic>.from(response['data'] ?? {});
     } catch (e) {
       print('Error creating order: $e');
       rethrow;
@@ -71,6 +77,9 @@ class OrderService {
     }
   }
 }
+
+
+
 
 
 

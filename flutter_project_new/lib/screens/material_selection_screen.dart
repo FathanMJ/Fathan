@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../product_model.dart';
 import 'material_model.dart';
-import 'size_selection_screen.dart';
+import 'detail_size_screen.dart';
 import '../services/master_data_service.dart';
 
 class MaterialSelectionScreen extends StatefulWidget {
@@ -132,7 +132,7 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Langkah 2 dari 4: Pilih jenis bahan yang kamu inginkan',
+            'Langkah 2 dari 4: Pilih bahan yang kamu inginkan',
             style: TextStyle(
               color: AppColors.textLight,
               fontSize: 14,
@@ -164,9 +164,9 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
           _buildStepConnector(true),
           _buildStepBox('2', 'Pilih\nBahan', true),
           _buildStepConnector(false),
-          _buildStepBox('3', 'Upload\nDesain', false),
+          _buildStepBox('3', 'Detail\nUkuran', false),
           _buildStepConnector(false),
-          _buildStepBox('4', 'Preview &\nCheckout', false),
+          _buildStepBox('4', 'Upload\nDesain', false),
         ],
       ),
     );
@@ -424,7 +424,7 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SizeSelectionScreen(
+                    builder: (context) => DetailSizeScreen(
                       selectedProduct: widget.selectedProduct,
                       selectedMaterial: _selectedMaterial!,
                     ),
@@ -443,7 +443,7 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
           elevation: _selectedMaterial == null ? 0 : 4,
         ),
         child: const Text(
-          'Pilih Ukuran',
+          'Atur Detail Ukuran',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
