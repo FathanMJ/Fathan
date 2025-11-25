@@ -16,6 +16,7 @@ class OrderItem {
   final double collarPrice;
   final double designPrice;
   final double totalPrice;
+  final int? varianId; // ID varian produk (untuk produk biasa)
 
   OrderItem({
     required this.id,
@@ -35,6 +36,7 @@ class OrderItem {
     required this.collarPrice,
     required this.designPrice,
     required this.totalPrice,
+    this.varianId,
   });
 
   Map<String, dynamic> toJson() {
@@ -56,6 +58,7 @@ class OrderItem {
       'collarPrice': collarPrice,
       'designPrice': designPrice,
       'totalPrice': totalPrice,
+      'varianId': varianId,
     };
   }
 
@@ -78,6 +81,7 @@ class OrderItem {
       collarPrice: json['collarPrice'].toDouble(),
       designPrice: json['designPrice'].toDouble(),
       totalPrice: json['totalPrice'].toDouble(),
+      varianId: json['varianId'],
     );
   }
 }

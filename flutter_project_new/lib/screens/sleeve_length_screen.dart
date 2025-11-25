@@ -42,17 +42,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
 
           // Auto-select first option if available
           if (_sleeveOptions.isNotEmpty) {
-            final applicableOptions = _sleeveOptions
-                .where(
-                  (option) => option['applicable'].contains(
-                    widget.selectedProduct.name,
-                  ),
-                )
-                .toList();
-
-            if (applicableOptions.isNotEmpty) {
-              _selectedSleeveLength = applicableOptions.first['length'];
-            }
+            _selectedSleeveLength = _sleeveOptions.first['length'];
           }
         });
       }
@@ -277,14 +267,7 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final applicableOptions = _sleeveOptions
-        .where(
-          (option) =>
-              option['applicable'].contains(widget.selectedProduct.name),
-        )
-        .toList();
-
-    if (applicableOptions.isEmpty) {
+    if (_sleeveOptions.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -306,9 +289,9 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: applicableOptions.length,
+      itemCount: _sleeveOptions.length,
       itemBuilder: (context, index) {
-        final sleeveOption = applicableOptions[index];
+        final sleeveOption = _sleeveOptions[index];
         final isSelected = _selectedSleeveLength == sleeveOption['length'];
 
         return _buildSleeveOptionCard(sleeveOption, isSelected);

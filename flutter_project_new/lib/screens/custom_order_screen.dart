@@ -24,7 +24,8 @@ class _CustomOrderScreenState extends State<CustomOrderScreen> {
 
   Future<void> _loadProducts() async {
     try {
-      final products = await ProductService.getProducts();
+      // Hanya ambil produk dengan tipe "custom"
+      final products = await ProductService.getProducts(tipeProduk: 'custom');
       if (mounted) {
         setState(() {
           _baseProducts = products;

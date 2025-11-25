@@ -46,13 +46,7 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
           
           // Auto-select first option if available
           if (_collarOptions.isNotEmpty) {
-    final applicableOptions = _collarOptions
-        .where((option) => option['applicable'].contains(widget.selectedProduct.name))
-        .toList();
-    
-    if (applicableOptions.isNotEmpty) {
-      _selectedCollarType = applicableOptions.first['type'];
-            }
+            _selectedCollarType = _collarOptions.first['type'];
           }
         });
       }
@@ -284,11 +278,7 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
       );
     }
 
-    final applicableOptions = _collarOptions
-        .where((option) => option['applicable'].contains(widget.selectedProduct.name))
-        .toList();
-
-    if (applicableOptions.isEmpty) {
+    if (_collarOptions.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -313,9 +303,9 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: applicableOptions.length,
+      itemCount: _collarOptions.length,
       itemBuilder: (context, index) {
-        final collarOption = applicableOptions[index];
+        final collarOption = _collarOptions[index];
         final isSelected = _selectedCollarType == collarOption['type'];
 
         return _buildCollarOptionCard(collarOption, isSelected);

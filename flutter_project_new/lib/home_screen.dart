@@ -5,6 +5,7 @@ import 'constants/colors.dart';
 import 'screens/custom_order_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/product_detail_screen.dart';
 import 'utils/page_transitions.dart';
 import 'pilih_auth_screen.dart';
 import 'dart:ui' as ui;
@@ -160,15 +161,31 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
 
   Future<void> _loadProducts() async {
     try {
-      final products = await ProductService.getProducts();
+      // Load produk biasa untuk "Produk Unggulan"
+      final biasaProducts = await ProductService.getProducts(
+        tipeProduk: 'biasa',
+      );
+
+      // Load produk custom untuk "Template Custom Desain"
+      final customProducts = await ProductService.getProducts(
+        tipeProduk: 'custom',
+      );
+
       if (mounted) {
         setState(() {
-          _products = products.map((p) {
-            return {'name': p.name, 'price': p.minPrice, 'image': p.image};
+          // Hanya produk biasa yang ditampilkan di "Produk Unggulan"
+          _products = biasaProducts.map((p) {
+            return {
+              'id': p.id,
+              'name': p.name,
+              'price': p.minPrice,
+              'image': p.image,
+              'description': p.description,
+            };
           }).toList();
 
-          // Set custom templates from products (take first 3)
-          _customTemplates = products.take(3).map((p) {
+          // Set custom templates dari produk custom (maksimal 3)
+          _customTemplates = customProducts.take(3).map((p) {
             return {
               'name': p.name,
               'image': p.image,
@@ -939,10 +956,16 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
         itemCount: _products.length,
         itemBuilder: (context, index) {
           final product = _products[index];
+          final productId = product['id'] as int?;
+          if (productId == null) {
+            return const SizedBox.shrink(); // Skip products without ID
+          }
           return _buildProductCard(
+            productId: productId,
             name: product['name']!,
             price: product['price']!,
             image: product['image']!,
+            description: product['description'] ?? '',
             discountedPrice: product['discounted_price'],
           );
         },
@@ -951,163 +974,192 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
   }
 
   Widget _buildProductCard({
+    required int productId,
     required String name,
     required String price,
     required String image,
+    String description = '',
     String? discountedPrice,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowColor,
-            spreadRadius: 2,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: productId),
           ),
-        ],
-        border: Border.all(
-          color: AppColors.borderColor.withOpacity(0.1),
-          width: 1,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowColor,
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: AppColors.borderColor.withOpacity(0.1),
+            width: 1,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 3,
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: Image.network(
-                    image,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: AppColors.cardBackground,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: Image.network(
+                      image,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: AppColors.cardBackground,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.cardBackground,
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: AppColors.textLight,
-                          size: 50,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowColor,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.favorite_border,
-                      color: AppColors.textLight,
-                      size: 16,
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.cardBackground,
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            color: AppColors.textLight,
+                            size: 50,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
-                if (discountedPrice != null)
                   Positioned(
                     top: 8,
-                    left: 8,
+                    right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.shadowColor,
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        'DISKON',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      child: const Icon(
+                        Icons.favorite_border,
+                        color: AppColors.textLight,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                  if (discountedPrice != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (discountedPrice != null)
-                        Text(
-                          price,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'DISKON',
                           style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
-                            decoration: TextDecoration.lineThrough,
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      Text(
-                        discountedPrice ?? price,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: discountedPrice != null
-                              ? AppColors.accent
-                              : AppColors.primary,
-                          fontSize: 13,
-                        ),
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        if (description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (discountedPrice != null)
+                          Text(
+                            price,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        Text(
+                          discountedPrice ?? price,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: discountedPrice != null
+                                ? AppColors.accent
+                                : AppColors.primary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

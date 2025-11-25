@@ -59,7 +59,7 @@ class MasterDataService {
           'description': _getSleeveDescription(item['nama'] ?? ''),
           'priceAdjustment': _parsePrice(item['harga_tambahan']),
           'iconData': _getSleeveIcon(item['nama'] ?? ''),
-          'applicable': ['Kaos', 'T-Shirt', 'Polo', 'Hoodie', 'Kemeja'],
+          'applicable': ['Kaos', 'T-Shirt', 'Polo', 'Hoodie', 'Kemeja', 'Jersey'],
         };
       }).toList();
     } catch (e) {

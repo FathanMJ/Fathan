@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../models/cart.dart';
 import '../models/order_item.dart';
+import 'checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final OrderItem? initialItem;
+  
+  const CartScreen({super.key, this.initialItem});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -17,53 +20,25 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize with mock data
-    _cart = Cart(
-      id: 'cart_001',
-      items: [
-        OrderItem(
-          id: 'item_001',
-          productName: 'Jersey Tim',
-          materialName: 'Arrow',
-          sizes: {'S': 2, 'M': 5, 'L': 8},
-          sleeveLength: 'Lengan Pendek',
-          collarType: 'O-Neck',
-          baseColor: 'Biru',
-          totalQuantity: 15,
-          isPlayer: true,
-          designFile: 'design_pemain.pdf',
-          templateName: null,
-          basePrice: 89000,
-          materialPrice: 15000,
-          sleevePrice: 0,
-          collarPrice: 0,
-          designPrice: 0,
-          totalPrice: 1560000, // 15 * 104000
-        ),
-        OrderItem(
-          id: 'item_002',
-          productName: 'Jersey Tim',
-          materialName: 'Arrow',
-          sizes: {'XL': 1, 'XXL': 1},
-          sleeveLength: 'Lengan Pendek',
-          collarType: 'O-Neck',
-          baseColor: 'Hijau',
-          totalQuantity: 2,
-          isPlayer: false,
-          designFile: 'design_kiper.pdf',
-          templateName: null,
-          basePrice: 89000,
-          materialPrice: 15000,
-          sleevePrice: 0,
-          collarPrice: 0,
-          designPrice: 0,
-          totalPrice: 208000, // 2 * 104000
-        ),
-      ],
-      totalPrice: 1768000,
-      totalItems: 17,
-      createdAt: DateTime.now(),
-    );
+    // Initialize cart with initial item if provided
+    if (widget.initialItem != null) {
+      _cart = Cart(
+        id: 'cart_001',
+        items: [widget.initialItem!],
+        totalPrice: widget.initialItem!.totalPrice,
+        totalItems: widget.initialItem!.totalQuantity,
+        createdAt: DateTime.now(),
+      );
+    } else {
+      // Initialize with empty cart
+      _cart = Cart(
+        id: 'cart_001',
+        items: [],
+        totalPrice: 0,
+        totalItems: 0,
+        createdAt: DateTime.now(),
+      );
+    }
   }
 
   @override
@@ -492,7 +467,12 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                _showCheckoutDialog();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CheckoutScreen(cart: _cart),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),

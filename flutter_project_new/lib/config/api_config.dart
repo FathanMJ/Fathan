@@ -22,6 +22,12 @@ class ApiConfig {
   static const String pesanan = '/pesanan';
   static const String customOrder = '/custom-order';
   static const String chatRooms = '/chat/rooms';
+  
+  // Raja Ongkir Endpoints (via Laravel API)
+  static const String ongkirProvinsi = '/ongkir/provinsi';
+  static const String ongkirKota = '/ongkir/kota';
+  static const String ongkirKecamatan = '/ongkir/kecamatan';
+  static const String ongkirHitung = '/ongkir/hitung';
 }
 
 

@@ -1,12 +1,14 @@
 import 'laravel_api_service.dart';
 import '../config/api_config.dart';
 import '../product_model.dart';
+import '../models/product_detail.dart';
 
 class ProductService {
   // Get all products
   static Future<List<Product>> getProducts({
     String? search,
     int? kategoriId,
+    String? tipeProduk, // 'biasa' or 'custom'
   }) async {
     try {
       String endpoint = ApiConfig.produk;
@@ -17,6 +19,9 @@ class ProductService {
       }
       if (kategoriId != null) {
         queryParams.add('kategori_id=$kategoriId');
+      }
+      if (tipeProduk != null) {
+        queryParams.add('tipe_produk=$tipeProduk');
       }
       
       if (queryParams.isNotEmpty) {
@@ -88,8 +93,33 @@ class ProductService {
           }
         }
         
+        // Untuk produk biasa, hitung harga minimum (harga_dasar + harga_tambahan minimum dari varian)
+        double minPrice = hargaDasar;
+        final tipeProduk = item['tipe_produk'] ?? 'biasa';
+        
+        if (tipeProduk == 'biasa' && item['varian'] != null && (item['varian'] as List).isNotEmpty) {
+          // Cari harga_tambahan minimum dari varian
+          double minHargaTambahan = double.infinity;
+          for (var varian in item['varian']) {
+            double hargaTambahan = 0;
+            if (varian['harga_tambahan'] != null) {
+              if (varian['harga_tambahan'] is String) {
+                hargaTambahan = double.tryParse(varian['harga_tambahan']) ?? 0;
+              } else if (varian['harga_tambahan'] is num) {
+                hargaTambahan = (varian['harga_tambahan'] as num).toDouble();
+              }
+            }
+            if (hargaTambahan < minHargaTambahan) {
+              minHargaTambahan = hargaTambahan;
+            }
+          }
+          if (minHargaTambahan != double.infinity) {
+            minPrice = hargaDasar + minHargaTambahan;
+          }
+        }
+        
         // Format harga dengan titik sebagai pemisah ribuan
-        String formattedPrice = hargaDasar.toStringAsFixed(0).replaceAllMapped(
+        String formattedPrice = minPrice.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]}.',
         );
@@ -109,7 +139,7 @@ class ProductService {
     }
   }
 
-  // Get product by ID
+  // Get product by ID (simple version)
   static Future<Product?> getProductById(int id) async {
     try {
       final response = await LaravelApiService.get(
@@ -162,6 +192,34 @@ class ProductService {
       );
     } catch (e) {
       print('Error fetching product: $e');
+      return null;
+    }
+  }
+
+  // Get product detail with variants
+  static Future<ProductDetail?> getProductDetail(int id) async {
+    try {
+      print('🔍 Fetching product detail for ID: $id');
+      final response = await LaravelApiService.get(
+        '${ApiConfig.produk}/$id',
+        requiresAuth: false,
+      );
+      
+      print('✅ Product detail response received');
+      final item = response['data'];
+      if (item == null) {
+        print('⚠️ No product data found');
+        return null;
+      }
+      
+      print('📦 Parsing product detail...');
+      final productDetail = ProductDetail.fromJson(item);
+      print('✅ Product detail parsed: ${productDetail.nama}, ${productDetail.varian.length} variants');
+      
+      return productDetail;
+    } catch (e, stackTrace) {
+      print('❌ Error fetching product detail: $e');
+      print('📍 Stack trace: $stackTrace');
       return null;
     }
   }

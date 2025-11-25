@@ -32,22 +32,96 @@ class OrderService {
     int? shippingCostId,
     int? discountId,
     String? notes,
+    // Data ongkir dari Raja Ongkir
+    String? kurir,
+    String? layanan,
+    int? hargaOngkir,
+    String? estimasi,
   }) async {
     try {
+      final body = {
+        'items': items,
+        'alamat_pengiriman': shippingAddress,
+        'metode_pembayaran': paymentMethod,
+        'diskon_id': discountId,
+        'catatan': notes,
+      };
+
+      // Tambahkan ongkir_id jika ada
+      if (shippingCostId != null) {
+        body['ongkir_id'] = shippingCostId;
+      }
+
+      // Tambahkan data ongkir dari Raja Ongkir
+      if (kurir != null) {
+        body['kurir_pengiriman'] = kurir;
+      }
+      if (layanan != null) {
+        body['layanan_pengiriman'] = layanan;
+      }
+      if (hargaOngkir != null) {
+        body['harga_ongkir'] = hargaOngkir;
+      }
+      if (estimasi != null) {
+        body['estimasi_pengiriman'] = estimasi;
+      }
+
       final response = await LaravelApiService.post(
         ApiConfig.pesanan,
-        body: {
-          'items': items,
-          'alamat_pengiriman': shippingAddress,
-          'metode_pembayaran': paymentMethod,
-          'ongkir_id': shippingCostId,
-          'diskon_id': discountId,
-          'catatan': notes,
-        },
+        body: body,
       );
       return Map<String, dynamic>.from(response['data'] ?? {});
     } catch (e) {
       print('Error creating order: $e');
+      rethrow;
+    }
+  }
+
+  // --- Custom Order Flow ---
+
+  /// 1. Create a new custom order submission (Step A)
+  static Future<Map<String, dynamic>> createCustomOrder({
+    required Map<String, dynamic> customOrderData,
+  }) async {
+    try {
+      // Endpoint ini harus dibuat di backend untuk menerima pengajuan custom order
+      final response = await LaravelApiService.post(
+        ApiConfig.customOrder, // contoh: '/api/custom-order'
+        body: customOrderData,
+      );
+      return Map<String, dynamic>.from(response['data'] ?? {});
+    } catch (e) {
+      print('Error creating custom order: $e');
+      rethrow;
+    }
+  }
+
+  /// 2. Get payment token for Down Payment (Step D)
+  static Future<Map<String, dynamic>> payCustomOrderDP(int orderId) async {
+    try {
+      // Endpoint untuk generate snap token DP
+      final response = await LaravelApiService.post(
+        '${ApiConfig.customOrder}/$orderId/pay-dp',
+        body: {},
+      );
+      return Map<String, dynamic>.from(response['data'] ?? {});
+    } catch (e) {
+      print('Error paying custom order DP: $e');
+      rethrow;
+    }
+  }
+
+  /// 3. Get payment token for Final Payment (Step F)
+  static Future<Map<String, dynamic>> payCustomOrderFinal(int orderId) async {
+    try {
+      // Endpoint untuk generate snap token pelunasan
+      final response = await LaravelApiService.post(
+        '${ApiConfig.customOrder}/$orderId/pay-final',
+        body: {},
+      );
+      return Map<String, dynamic>.from(response['data'] ?? {});
+    } catch (e) {
+      print('Error paying custom order final payment: $e');
       rethrow;
     }
   }
@@ -77,21 +151,3 @@ class OrderService {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

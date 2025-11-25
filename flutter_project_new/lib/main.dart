@@ -1,17 +1,36 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
 import 'welcome.dart'; // <-- tambahkan import ke HomeScreen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  // Init FCM
-  await PushNotificationService.instance.initialize();
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    // Init FCM only for mobile platforms (not web)
+    if (!kIsWeb) {
+      try {
+        await PushNotificationService.instance.initialize();
+      } catch (e) {
+        debugPrint('⚠️ PushNotificationService initialization failed: $e');
+        // Continue even if push notification fails
+      }
+    }
+  } catch (e) {
+    debugPrint('❌ Firebase initialization failed: $e');
+    // Continue even if Firebase fails (for web testing)
+    if (kIsWeb) {
+      debugPrint('⚠️ Running without Firebase on web');
+    }
+  }
+  
   runApp(const MyApp());
 }
 

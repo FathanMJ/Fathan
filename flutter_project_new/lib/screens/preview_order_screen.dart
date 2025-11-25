@@ -100,6 +100,8 @@ class _PreviewOrderScreenState extends State<PreviewOrderScreen> {
                 children: [
                   _buildOrderSummary(),
                   const SizedBox(height: 16),
+                  _buildProductPreview(), // Preview visual pakaian custom
+                  const SizedBox(height: 16),
                   _buildProductDetails(),
                   const SizedBox(height: 16),
                   _buildPriceBreakdown(),
@@ -113,6 +115,227 @@ class _PreviewOrderScreenState extends State<PreviewOrderScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildProductPreview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Preview Pakaian Custom',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Preview container dengan desain
+          Container(
+            height: 300,
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.borderColor,
+                width: 1,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  // Background pakaian (base color)
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: _getBaseColor(),
+                  ),
+                  // Preview desain
+                  if (widget.hasOwnDesign && widget.designData['file'] != null)
+                    // Tampilkan file yang diupload
+                    Center(
+                      child: _buildUploadedDesignPreview(widget.designData['file']),
+                    )
+                  else if (widget.designData['image'] != null)
+                    // Tampilkan template yang dipilih
+                    Center(
+                      child: Image.network(
+                        widget.designData['image'],
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildDesignPlaceholder(widget.designData['name'] ?? 'Template');
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                      ),
+                    )
+                  else
+                    // Placeholder jika tidak ada desain
+                    _buildDesignPlaceholder('Tanpa Desain'),
+                  // Overlay info
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.selectedProduct.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${widget.selectedMaterial.name} • ${widget.selectedSleeveLength}',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Info desain
+          Row(
+            children: [
+              Icon(
+                widget.hasOwnDesign ? Icons.upload_file : Icons.image,
+                size: 16,
+                color: AppColors.textLight,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.hasOwnDesign
+                      ? 'Desain: Upload Sendiri'
+                      : 'Desain: ${widget.designData['name'] ?? 'Template Polos'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUploadedDesignPreview(dynamic filePath) {
+    // Handle file path - bisa berupa File object, path string, atau URL
+    if (filePath is String) {
+      // Jika path string, coba load sebagai network image atau file
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        // Network image
+        return Image.network(
+          filePath,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDesignPlaceholder('File Desain');
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
+        );
+      } else {
+        // Local file path - untuk Flutter, gunakan file_picker atau image_picker result
+        // Untuk sekarang, tampilkan placeholder
+        return _buildDesignPlaceholder('File Desain');
+      }
+    }
+    // Fallback
+    return _buildDesignPlaceholder('File Desain');
+  }
+
+  Widget _buildDesignPlaceholder(String label) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.checkroom,
+            size: 64,
+            color: AppColors.textLight.withOpacity(0.5),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textLight.withOpacity(0.7),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getBaseColor() {
+    // Convert base color name to Color
+    final colorName = widget.selectedProduct.name.toLowerCase();
+    if (colorName.contains('biru') || colorName.contains('blue')) {
+      return Colors.blue.shade100;
+    } else if (colorName.contains('merah') || colorName.contains('red')) {
+      return Colors.red.shade100;
+    } else if (colorName.contains('hijau') || colorName.contains('green')) {
+      return Colors.green.shade100;
+    } else if (colorName.contains('kuning') || colorName.contains('yellow')) {
+      return Colors.yellow.shade100;
+    } else if (colorName.contains('hitam') || colorName.contains('black')) {
+      return Colors.grey.shade800;
+    } else if (colorName.contains('putih') || colorName.contains('white')) {
+      return Colors.white;
+    }
+    // Default color
+    return Colors.grey.shade200;
   }
 
   Widget _buildOrderSummary() {
