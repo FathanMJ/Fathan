@@ -361,11 +361,26 @@ class _CollarTypeScreenState extends State<CollarTypeScreen> {
                     width: 1,
                   ),
                 ),
-                child: Icon(
-                  collarOption['iconData'] ?? Icons.circle_outlined,
-                  color: isSelected ? AppColors.primary : AppColors.textLight,
-                  size: 24,
-                ),
+                child: (collarOption['image'] != null && (collarOption['image'] as String).isNotEmpty)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          collarOption['image'] as String,
+                          fit: BoxFit.cover,
+                          width: 50,
+                          height: 50,
+                          errorBuilder: (context, error, stack) => Icon(
+                            collarOption['iconData'] ?? Icons.circle_outlined,
+                            color: isSelected ? AppColors.primary : AppColors.textLight,
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        collarOption['iconData'] ?? Icons.circle_outlined,
+                        color: isSelected ? AppColors.primary : AppColors.textLight,
+                        size: 24,
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(

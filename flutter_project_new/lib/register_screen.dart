@@ -268,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         try {
           final response = await LaravelApiService.post(
-            '/register/firebase',
+            'register/firebase', // Endpoint API untuk registrasi
             body: {'id_token': idToken, 'alamat': address, 'telepon': phone},
             requiresAuth: false,
           );

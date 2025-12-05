@@ -18,6 +18,7 @@ class ApiConfig {
   static const String login = '/login';
   static const String logout = '/logout';
   static const String user = '/user';
+  static const String userPassword = '/user/password';
   static const String produk = '/produk';
   static const String pesanan = '/pesanan';
   static const String customOrder = '/custom-order';

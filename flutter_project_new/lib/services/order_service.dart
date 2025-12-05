@@ -29,6 +29,7 @@ class OrderService {
     required List<Map<String, dynamic>> items,
     required String shippingAddress,
     String paymentMethod = 'midtrans',
+    String? tipePembayaran, // 'penuh' atau 'dp'
     int? shippingCostId,
     int? discountId,
     String? notes,
@@ -46,6 +47,11 @@ class OrderService {
         'diskon_id': discountId,
         'catatan': notes,
       };
+      
+      // Tambahkan tipe_pembayaran jika ada (untuk DP)
+      if (tipePembayaran != null) {
+        body['tipe_pembayaran'] = tipePembayaran;
+      }
 
       // Tambahkan ongkir_id jika ada
       if (shippingCostId != null) {
@@ -116,12 +122,27 @@ class OrderService {
     try {
       // Endpoint untuk generate snap token pelunasan
       final response = await LaravelApiService.post(
-        '${ApiConfig.customOrder}/$orderId/pay-final',
+        '${ApiConfig.customOrder}/$orderId/pay-remaining',
         body: {},
       );
       return Map<String, dynamic>.from(response['data'] ?? {});
     } catch (e) {
       print('Error paying custom order final payment: $e');
+      rethrow;
+    }
+  }
+
+  /// 4. Get payment status for custom order
+  static Future<Map<String, dynamic>> getCustomOrderPaymentStatus(
+    int orderId,
+  ) async {
+    try {
+      final response = await LaravelApiService.get(
+        '${ApiConfig.customOrder}/$orderId/payment-status',
+      );
+      return Map<String, dynamic>.from(response['data'] ?? {});
+    } catch (e) {
+      print('Error getting custom order payment status: $e');
       rethrow;
     }
   }

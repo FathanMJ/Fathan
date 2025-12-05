@@ -33,6 +33,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   ];
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  File? _imagePreview;
+  PlatformFile? _filePreview;
 
   void _sendMessage() {
     if (_textController.text.isNotEmpty) {
@@ -58,24 +60,52 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           );
         }
       });
-    }
-  }
-
-  Future<void> _sendImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
+    } else if (_imagePreview != null) {
       setState(() {
         _messages.add(
           ChatMessage(
             sender: 'user',
-            text: pickedFile.path,
+            text: _imagePreview!.path,
             type: MessageType.image,
             status: MessageStatus.sent,
             timestamp: DateTime.now(),
           ),
         );
+        _textController.clear();
+      });
+      // Auto scroll to bottom
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } else if (_filePreview != null) {
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            sender: 'user',
+            text: _filePreview!.path!,
+            type: MessageType.file,
+            status: MessageStatus.sent,
+            timestamp: DateTime.now(),
+          ),
+        );
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _imagePreview = File(pickedFile.path);
+        _filePreview = null;
       });
     }
   }
@@ -87,15 +117,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
     if (result != null) {
       setState(() {
-        _messages.add(
-          ChatMessage(
-            sender: 'user',
-            text: result.files.single.path!,
-            type: MessageType.file,
-            status: MessageStatus.sent,
-            timestamp: DateTime.now(),
-          ),
-        );
+        _filePreview = result.files.single;
+        _imagePreview = null;
+      });
+    }
+  }
+
+  void _clearPreviews() {
+    if (mounted) {
+      setState(() {
+        _imagePreview = null;
+        _filePreview = null;
       });
     }
   }
@@ -133,9 +165,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.conversation.adminName ?? 
-                    widget.conversation.pelangganName ?? 
-                    'Chat',
+                    widget.conversation.adminName ??
+                        widget.conversation.pelangganName ??
+                        'Chat',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -220,9 +252,71 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
             ),
           ),
+          // Preview Area
+          if (_imagePreview != null || _filePreview != null)
+            _buildPreviewArea(),
           // Input area
           _buildInputArea(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewArea() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            if (_imagePreview != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  _imagePreview!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            if (_filePreview != null)
+              const Icon(Icons.insert_drive_file, color: Colors.grey, size: 30),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _imagePreview != null
+                        ? 'Pratinjau Gambar'
+                        : 'Pratinjau File',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (_filePreview != null)
+                    Text(
+                      _filePreview!.name,
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                _clearPreviews();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -271,8 +365,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(Icons.image, size: 20, color: Colors.grey),
-                onPressed: _sendImage,
+                icon: const Icon(
+                  Icons.image_outlined,
+                  size: 20,
+                  color: Colors.grey,
+                ),
+                onPressed: _pickImage,
               ),
             ),
             const SizedBox(width: 8),
@@ -294,15 +392,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       vertical: 12,
                     ),
                   ),
-                  onSubmitted: (value) => _sendMessage(),
+                  onSubmitted: (_) => _sendMessage(),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             // Send button
             Container(
-              width: 40,
-              height: 40,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF667eea), Color(0xFF764ba2)],
@@ -312,7 +410,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: IconButton(
-                icon: const Icon(Icons.send, size: 20, color: Colors.white),
+                icon: const Icon(Icons.send, size: 24, color: Colors.white),
                 onPressed: _sendMessage,
               ),
             ),
@@ -403,10 +501,12 @@ class _ChatBubble extends StatelessWidget {
                         if (isUser) ...[
                           const SizedBox(width: 4),
                           Icon(
-                            message.status == MessageStatus.read
+                            message.status == MessageStatus.sent
+                                ? Icons.access_time
+                                : message.status == MessageStatus.read
                                 ? Icons.done_all
                                 : Icons.done,
-                            size: 14,
+                            size: 16,
                             color: Colors.white70,
                           ),
                         ],
@@ -471,7 +571,10 @@ class _ChatBubble extends StatelessWidget {
       case MessageType.text:
         return Text(
           message.text,
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 14,
+            color: isUser ? Colors.white : Colors.black87,
+          ),
         );
     }
   }

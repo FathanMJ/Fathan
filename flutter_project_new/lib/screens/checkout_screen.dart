@@ -11,10 +11,7 @@ import '../models/raja_ongkir/shipping_cost.dart';
 class CheckoutScreen extends StatefulWidget {
   final Cart cart;
 
-  const CheckoutScreen({
-    super.key,
-    required this.cart,
-  });
+  const CheckoutScreen({super.key, required this.cart});
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -25,6 +22,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
   String _selectedPaymentMethod = 'midtrans';
+  String _selectedPaymentType = 'penuh'; // 'penuh' atau 'dp'
   int? _selectedShippingId;
   int? _selectedDiscountId;
   bool _isLoading = false;
@@ -58,7 +56,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _loadProvinces() async {
     try {
-      final provinces = await RajaOngkirService.getProvinces();
+      // Backend sekarang mencari berdasarkan nama, jadi kita muat beberapa provinsi umum.
+      // Atau bisa juga menggunakan input search dari user.
+      final provinces = await RajaOngkirService.getProvinces(
+        'jakarta',
+      ); // Contoh: cari provinsi yg mengandung "jakarta"
       setState(() {
         _provinces = provinces;
       });
@@ -75,21 +77,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _loadOriginCities() async {
-    // Default origin: Jakarta (province_id = 6)
+    // Default origin: Jakarta
     setState(() {
       _isLoadingCities = true;
     });
     try {
-      final cities = await RajaOngkirService.getCitiesByProvince('6');
+      final cities = await RajaOngkirService.getCities('jakarta');
+
+      // Debug log
+      print('🏙️ Origin cities loaded: ${cities.length}');
+      for (var city in cities) {
+        print('  - ${city.cityName} (ID: ${city.cityId})');
+      }
+
       setState(() {
         _originCities = cities;
-        // Set default origin to Jakarta Pusat if available
-        _selectedOriginCity = cities.firstWhere(
-          (city) => city.cityName.toLowerCase().contains('jakarta pusat'),
-          orElse: () => cities.first,
-        );
+
+        // Set default origin - gunakan first() jika ada, atau jangan set sama sekali
+        if (cities.isNotEmpty) {
+          // Cari Jakarta Pusat, jika tidak ada gunakan yang pertama
+          try {
+            _selectedOriginCity = cities.firstWhere(
+              (city) => city.cityName.toLowerCase().contains('jakarta pusat'),
+            );
+          } catch (e) {
+            // Jika tidak ketemu, gunakan yang pertama saja
+            _selectedOriginCity = cities.first;
+          }
+          print('✅ Selected origin city: ${_selectedOriginCity?.cityName}');
+        } else {
+          print('⚠️ No cities found for search term "jakarta"');
+          _selectedOriginCity = null;
+        }
       });
     } catch (e) {
+      print('❌ Error loading origin cities: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -105,14 +127,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  Future<void> _loadDestinationCities(String provinceId) async {
+  Future<void> _loadDestinationCities(String provinceName) async {
     setState(() {
       _isLoadingCities = true;
       _destinationCities = [];
       _selectedDestinationCity = null;
     });
+
+    // Jangan panggil API jika nama provinsi kosong.
+    if (provinceName.trim().isEmpty) {
+      setState(() => _isLoadingCities = false);
+      return;
+    }
     try {
-      final cities = await RajaOngkirService.getCitiesByProvince(provinceId);
+      // Backend now uses search by name, not province_id
+      final cities = await RajaOngkirService.getCities(provinceName);
       setState(() {
         _destinationCities = cities;
       });
@@ -200,7 +229,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Build order items payload
       // Map cart items to API format with varian_id & jumlah
       List<Map<String, dynamic>> orderItems = [];
-      
+
       for (var item in widget.cart.items) {
         // Check if item has varian_id (for regular products)
         if (item.varianId != null) {
@@ -218,7 +247,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Tidak ada item yang valid untuk checkout. Pastikan item memiliki varian_id.'),
+              content: Text(
+                'Tidak ada item yang valid untuk checkout. Pastikan item memiliki varian_id.',
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -240,12 +271,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final courierList = RajaOngkirService.getAvailableCouriers();
         final courierMap = courierList.firstWhere(
           (c) => c['code'] == _selectedCourier,
-          orElse: () => <String, String>{'code': _selectedCourier!, 'name': _selectedCourier!.toUpperCase()},
+          orElse: () => <String, String>{
+            'code': _selectedCourier!,
+            'name': _selectedCourier!.toUpperCase(),
+          },
         );
         kurir = courierMap['name'] ?? _selectedCourier!.toUpperCase();
         layanan = _selectedShippingCost!.service;
         hargaOngkir = _selectedShippingCost!.totalCost;
-        estimasi = _selectedShippingCost!.etd.isNotEmpty 
+        estimasi = _selectedShippingCost!.etd.isNotEmpty
             ? '${_selectedShippingCost!.etd} hari'
             : null;
       }
@@ -255,9 +289,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         items: orderItems,
         shippingAddress: _addressController.text.trim(),
         paymentMethod: _selectedPaymentMethod,
+        tipePembayaran: _selectedPaymentMethod == 'midtrans'
+            ? _selectedPaymentType
+            ? _selectedPaymentType // Kirim 'penuh' atau 'dp'
+            : null, // Kirim tipe pembayaran jika Midtrans
         shippingCostId: _selectedShippingId,
         discountId: _selectedDiscountId,
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         // Data ongkir dari Raja Ongkir
         kurir: kurir,
         layanan: layanan,
@@ -267,48 +307,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       // Handle payment response
       final payment = orderData['payment'] as Map<String, dynamic>?;
-      
+
       print('💳 Payment response: $payment');
-      
+
       if (payment != null && _selectedPaymentMethod == 'midtrans') {
         String? snapRedirectUrl = payment['snap_redirect_url'] as String?;
         final snapToken = payment['snap_token'] as String?;
-        
+
         print('🔗 Snap redirect URL: $snapRedirectUrl');
-        print('🎫 Snap token: ${snapToken != null ? "Token tersedia" : "Token tidak ada"}');
-        
+        print(
+          '🎫 Snap token: ${snapToken != null ? "Token tersedia" : "Token tidak ada"}',
+        );
+
         // Jika tidak ada redirect_url, buat URL dari snap_token
         // Midtrans menggunakan format /snap/v4/redirection/ untuk versi terbaru
-        if ((snapRedirectUrl == null || snapRedirectUrl.isEmpty) && snapToken != null) {
+        if ((snapRedirectUrl == null || snapRedirectUrl.isEmpty) &&
+            snapToken != null) {
           final environment = payment['environment'] as String? ?? 'sandbox';
-          final baseUrl = environment == 'production' 
-              ? 'https://app.midtrans.com' 
+          final baseUrl = environment == 'production'
+              ? 'https://app.midtrans.com'
               : 'https://app.sandbox.midtrans.com';
           // Gunakan format v4 yang lebih baru
           snapRedirectUrl = '$baseUrl/snap/v4/redirection/$snapToken';
           print('🔗 Generated redirect URL: $snapRedirectUrl');
         }
-        
+
         if (snapRedirectUrl != null && snapRedirectUrl.isNotEmpty) {
           // Launch Midtrans payment
           print('🚀 Launching Midtrans payment...');
           try {
             // Launch payment URL
             await PaymentService.launchSnapUrl(snapRedirectUrl);
-            
+
             if (mounted) {
               // Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Halaman pembayaran Midtrans dibuka. Silakan selesaikan pembayaran.'),
+                  content: Text(
+                    'Halaman pembayaran Midtrans dibuka. Silakan selesaikan pembayaran.',
+                  ),
                   backgroundColor: AppColors.success,
                   duration: Duration(seconds: 2),
                 ),
               );
-              
+
               // Navigate back to home after a short delay to allow payment page to open
               await Future.delayed(const Duration(milliseconds: 500));
-              
+
               if (mounted) {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               }
@@ -332,7 +377,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('Gagal membuat pembayaran Midtrans. Pastikan MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY sudah dikonfigurasi di server.'),
+                content: const Text(
+                  'Gagal membuat pembayaran Midtrans. Pastikan MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY sudah dikonfigurasi di server.',
+                ),
                 backgroundColor: AppColors.error,
                 duration: const Duration(seconds: 5),
               ),
@@ -344,7 +391,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Pesanan berhasil dibuat. Silakan tunggu konfirmasi.'),
+              content: Text(
+                'Pesanan berhasil dibuat. Silakan tunggu konfirmasi.',
+              ),
               backgroundColor: AppColors.success,
             ),
           );
@@ -377,10 +426,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       appBar: AppBar(
         title: const Text(
           'Checkout',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.text,
@@ -388,10 +434,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: AppColors.borderColor,
-          ),
+          child: Container(height: 1, color: AppColors.borderColor),
         ),
       ),
       body: Form(
@@ -645,79 +688,121 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Origin City
-          DropdownButtonFormField<City>(
-            value: _selectedOriginCity,
-            decoration: const InputDecoration(
-              labelText: 'Kota Asal',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.location_city),
+          // Origin City - Perbaikan: hapus initialValue jika null
+          if (_originCities.isNotEmpty)
+            DropdownButtonFormField<City>(
+              value: _selectedOriginCity,
+              decoration: const InputDecoration(
+                labelText: 'Kota Asal',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_city),
+              ),
+              items: _originCities.map((city) {
+                return DropdownMenuItem<City>(
+                  value: city,
+                  child: Text(city.displayName),
+                );
+              }).toList(),
+              onChanged: (city) {
+                setState(() {
+                  _selectedOriginCity = city;
+                  _shippingCosts = [];
+                  _selectedShippingCost = null;
+                });
+              },
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.borderColor),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Memuat kota asal...',
+                style: TextStyle(color: AppColors.textLight),
+              ),
             ),
-            items: _originCities.map((city) {
-              return DropdownMenuItem<City>(
-                value: city,
-                child: Text(city.displayName),
-              );
-            }).toList(),
-            onChanged: (city) {
-              setState(() {
-                _selectedOriginCity = city;
-                _shippingCosts = [];
-                _selectedShippingCost = null;
-              });
-            },
-          ),
           const SizedBox(height: 16),
           // Destination Province
-          DropdownButtonFormField<Province>(
-            value: null,
-            decoration: InputDecoration(
-              labelText: 'Provinsi Tujuan',
-              border: const OutlineInputBorder(),
-              prefixIcon: const Icon(Icons.map),
-              suffixIcon: _isLoadingCities
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
+          if (_provinces.isNotEmpty)
+            DropdownButtonFormField<Province>(
+              value: null,
+              decoration: InputDecoration(
+                labelText: 'Provinsi Tujuan',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.map),
+                suffixIcon: _isLoadingCities
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : null,
+              ),
+              items: _provinces.map((province) {
+                return DropdownMenuItem<Province>(
+                  value: province,
+                  child: Text(province.province),
+                );
+              }).toList(),
+              onChanged: (province) {
+                if (province != null) {
+                  _loadDestinationCities(province.province);
+                }
+              },
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.borderColor),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Memuat provinsi...',
+                style: TextStyle(color: AppColors.textLight),
+              ),
             ),
-            items: _provinces.map((province) {
-              return DropdownMenuItem<Province>(
-                value: province,
-                child: Text(province.province),
-              );
-            }).toList(),
-            onChanged: (province) {
-              if (province != null) {
-                _loadDestinationCities(province.provinceId);
-              }
-            },
-          ),
           const SizedBox(height: 16),
-          // Destination City
-          DropdownButtonFormField<City>(
-            value: _selectedDestinationCity,
-            decoration: const InputDecoration(
-              labelText: 'Kota Tujuan',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.location_city),
+          // Destination City - Perbaikan: cek jika _destinationCities tidak kosong
+          if (_destinationCities.isNotEmpty)
+            DropdownButtonFormField<City>(
+              value: _selectedDestinationCity,
+              decoration: const InputDecoration(
+                labelText: 'Kota Tujuan',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_city),
+              ),
+              items: _destinationCities.map((city) {
+                return DropdownMenuItem<City>(
+                  value: city,
+                  child: Text(city.displayName),
+                );
+              }).toList(),
+              onChanged: (city) {
+                setState(() {
+                  _selectedDestinationCity = city;
+                  _shippingCosts = [];
+                  _selectedShippingCost = null;
+                });
+              },
+            )
+          else if (_isLoadingCities)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.borderColor),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Pilih provinsi terlebih dahulu...',
+                style: TextStyle(color: AppColors.textLight),
+              ),
             ),
-            items: _destinationCities.map((city) {
-              return DropdownMenuItem<City>(
-                value: city,
-                child: Text(city.displayName),
-              );
-            }).toList(),
-            onChanged: (city) {
-              setState(() {
-                _selectedDestinationCity = city;
-                _shippingCosts = [];
-                _selectedShippingCost = null;
-              });
-            },
-          ),
           const SizedBox(height: 16),
           // Courier Selection
           DropdownButtonFormField<String>(
@@ -746,7 +831,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: (_selectedOriginCity != null &&
+              onPressed:
+                  (_selectedOriginCity != null &&
                       _selectedDestinationCity != null &&
                       _selectedCourier != null &&
                       !_isLoadingShippingCost)
@@ -776,10 +862,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const Divider(),
             const Text(
               'Pilih Layanan Pengiriman:',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ..._shippingCosts.expand((shippingCost) {
@@ -890,6 +973,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
             activeColor: AppColors.primary,
           ),
+          // Opsi DP jika Midtrans dipilih
+          if (_selectedPaymentMethod == 'midtrans') ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Opsi Pembayaran",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Bayar Penuh'),
+                    value: 'penuh',
+                    groupValue: _selectedPaymentType,
+                    onChanged: (v) => setState(() => _selectedPaymentType = v!),
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Down Payment (DP) 50%'),
+                    value: 'dp',
+                    groupValue: _selectedPaymentType,
+                    onChanged: (v) => setState(() => _selectedPaymentType = v!),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -956,10 +1070,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               const Text(
                 'Total:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Text(
                 'Rp ${_totalPriceWithShipping.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
@@ -991,7 +1102,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.white,
+                        ),
                       ),
                     )
                   : const Text(
@@ -1008,4 +1121,3 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 }
-

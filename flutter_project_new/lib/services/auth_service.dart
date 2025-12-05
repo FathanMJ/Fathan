@@ -115,4 +115,21 @@ class AuthService {
     }
     throw Exception(response['message'] ?? 'Gagal memperbarui profil');
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final body = {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+      'new_password_confirmation': confirmPassword,
+    };
+    final response = await LaravelApiService.put(ApiConfig.userPassword, body: body);
+    if (response['success'] == true) {
+      return;
+    }
+    throw Exception(response['message'] ?? 'Gagal mengubah password');
+  }
 }

@@ -86,12 +86,13 @@ class ProductDetail {
     List<String> images = [];
     if (json['fotos'] != null && json['fotos'] is List) {
       for (var foto in json['fotos']) {
-        if (foto['nama_file'] != null && foto['nama_file'].toString().isNotEmpty) {
+        if (foto is Map && foto['url'] != null && (foto['url'] as String).isNotEmpty) {
+          images.add(foto['url'] as String);
+        } else if (foto['nama_file'] != null && foto['nama_file'].toString().isNotEmpty) {
           String fotoPath = foto['nama_file'].toString();
           if (fotoPath.startsWith('public/')) {
             fotoPath = fotoPath.replaceFirst('public/', '');
           }
-          // Base URL without /api
           String baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
           final imageUrl = '$baseUrl/storage/$fotoPath';
           if (imageUrl.isNotEmpty) {

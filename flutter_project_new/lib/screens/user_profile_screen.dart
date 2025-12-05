@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../constants/colors.dart';
 import '../pilih_auth_screen.dart';
 import 'profile/edit_profile_screen.dart';
+import '../config/api_config.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -95,10 +96,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
-            child: Icon(Icons.person, size: 50, color: AppColors.primary),
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: ClipOval(
+              child: _buildAvatarImage(),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -117,6 +120,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvatarImage() {
+    final foto = _userData?['pelanggan']?['foto_url'] ?? _userData?['foto_url'] ?? _userData?['foto'] ?? _userData?['pelanggan']?['foto'];
+    String? url;
+    if (foto is String && foto.isNotEmpty) {
+      if (foto.startsWith('http')) {
+        url = foto;
+      } else {
+        var path = foto;
+        if (path.startsWith('public/')) {
+          path = path.replaceFirst('public/', '');
+        }
+        final base = ApiConfig.baseUrl.replaceAll('/api', '');
+        url = '$base/storage/$path';
+      }
+    }
+    if (url == null || url.isEmpty) {
+      return Container(
+        color: AppColors.primary.withOpacity(0.1),
+        child: Icon(Icons.person, size: 50, color: AppColors.primary),
+      );
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stack) => Container(
+        color: AppColors.primary.withOpacity(0.1),
+        child: Icon(Icons.person, size: 50, color: AppColors.primary),
+      ),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          color: AppColors.primary.withOpacity(0.1),
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      },
     );
   }
 

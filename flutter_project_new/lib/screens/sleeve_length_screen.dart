@@ -350,11 +350,26 @@ class _SleeveLengthScreenState extends State<SleeveLengthScreen> {
                     width: 1,
                   ),
                 ),
-                child: Icon(
-                  sleeveOption['iconData'] ?? Icons.checkroom,
-                  color: isSelected ? AppColors.primary : AppColors.textLight,
-                  size: 24,
-                ),
+                child: (sleeveOption['image'] != null && (sleeveOption['image'] as String).isNotEmpty)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          sleeveOption['image'] as String,
+                          fit: BoxFit.cover,
+                          width: 50,
+                          height: 50,
+                          errorBuilder: (context, error, stack) => Icon(
+                            sleeveOption['iconData'] ?? Icons.checkroom,
+                            color: isSelected ? AppColors.primary : AppColors.textLight,
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        sleeveOption['iconData'] ?? Icons.checkroom,
+                        color: isSelected ? AppColors.primary : AppColors.textLight,
+                        size: 24,
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(

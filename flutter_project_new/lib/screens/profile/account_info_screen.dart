@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../config/api_config.dart';
 
 class AccountInfoScreen extends StatefulWidget {
   const AccountInfoScreen({super.key});
@@ -118,11 +119,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Color(0xFF667eea),
-                        ),
+                        child: ClipOval(child: _buildAvatar()),
                       ),
                       if (_isEditing)
                         Positioned(
@@ -366,12 +363,68 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
   }
 
   void _saveChanges() {
-    // Implement save logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Perubahan berhasil disimpan'),
-        backgroundColor: Color(0xFF27ae60),
-      ),
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    _authService
+        .updateProfile(
+          name: name.isEmpty ? null : name,
+          email: email.isEmpty ? null : email,
+          phone: phone.isEmpty ? null : phone,
+        )
+        .then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Perubahan berhasil disimpan'),
+          backgroundColor: Color(0xFF27ae60),
+        ),
+      );
+    }).catchError((e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: const Color(0xFFe74c3c),
+        ),
+      );
+    });
+  }
+
+  Widget _buildAvatar() {
+    final foto = _authService.currentUser.then((u) => u?['pelanggan']?['foto_url'] ?? u?['foto_url'] ?? u?['foto'] ?? u?['pelanggan']?['foto']);
+    return FutureBuilder<dynamic>(
+      future: foto,
+      builder: (context, snapshot) {
+        String? url;
+        final value = snapshot.data;
+        if (value is String && value.isNotEmpty) {
+          if (value.startsWith('http')) {
+            url = value;
+          } else {
+            var path = value;
+            if (path.startsWith('public/')) {
+              path = path.replaceFirst('public/', '');
+            }
+            final base = ApiConfig.baseUrl.replaceAll('/api', '');
+            url = '$base/storage/$path';
+          }
+        }
+        if (url == null || url.isEmpty) {
+          return const Icon(
+            Icons.person,
+            size: 50,
+            color: Color(0xFF667eea),
+          );
+        }
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stack) => const Icon(
+            Icons.person,
+            size: 50,
+            color: Color(0xFF667eea),
+          ),
+        );
+      },
     );
   }
 }

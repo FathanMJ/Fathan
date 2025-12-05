@@ -9,10 +9,10 @@ import 'laravel_api_service.dart';
 class RajaOngkirService {
   // Get all provinces via Laravel API
   // GET /api/ongkir/provinsi
-  static Future<List<Province>> getProvinces() async {
+  static Future<List<Province>> getProvinces(String searchTerm) async {
     try {
       final response = await LaravelApiService.get(
-        ApiConfig.ongkirProvinsi,
+        '${ApiConfig.ongkirProvinsi}?search=$searchTerm',
         requiresAuth: false, // Provinsi dan kota biasanya tidak perlu auth
       );
 
@@ -25,17 +25,17 @@ class RajaOngkirService {
         throw Exception(response['message'] ?? 'Failed to load provinces');
       }
     } catch (e) {
-      print('Error fetching provinces: $e');
+      print('Error fetching provinces with search: $e');
       rethrow;
     }
   }
 
-  // Get cities by province via Laravel API
-  // GET /api/ongkir/kota?provinsi_id=10
-  static Future<List<City>> getCitiesByProvince(String provinceId) async {
+  // Get cities by search query via Laravel API
+  // GET /api/ongkir/kota?search=bandung
+  static Future<List<City>> getCities(String searchTerm) async {
     try {
       final response = await LaravelApiService.get(
-        '${ApiConfig.ongkirKota}?provinsi_id=$provinceId',
+        '${ApiConfig.ongkirKota}?search=$searchTerm',
         requiresAuth: false,
       );
 
@@ -46,7 +46,7 @@ class RajaOngkirService {
         throw Exception(response['message'] ?? 'Failed to load cities');
       }
     } catch (e) {
-      print('Error fetching cities: $e');
+      print('Error fetching cities with search: $e');
       rethrow;
     }
   }
@@ -74,7 +74,9 @@ class RajaOngkirService {
 
   // Get subdistricts (kecamatan) by city via Laravel API
   // GET /api/ongkir/kecamatan?kota_id=439
-  static Future<List<Map<String, dynamic>>> getSubdistrictsByCity(String cityId) async {
+  static Future<List<Map<String, dynamic>>> getSubdistrictsByCity(
+    String cityId,
+  ) async {
     try {
       final response = await LaravelApiService.get(
         '${ApiConfig.ongkirKecamatan}?kota_id=$cityId',
@@ -129,7 +131,9 @@ class RajaOngkirService {
         final results = response['data'] as List<dynamic>;
         return results.map((json) => ShippingCost.fromJson(json)).toList();
       } else {
-        throw Exception(response['message'] ?? 'Failed to calculate shipping cost');
+        throw Exception(
+          response['message'] ?? 'Failed to calculate shipping cost',
+        );
       }
     } catch (e) {
       print('Error calculating shipping cost: $e');

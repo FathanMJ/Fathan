@@ -16,6 +16,9 @@ class MasterDataService {
           description: item['deskripsi'] ?? '',
           priceIncrease: _formatPrice(item['harga_tambahan']),
           priceIncreaseValue: _parsePrice(item['harga_tambahan']),
+          imageUrl: (item['foto'] is String && (item['foto'] as String).isNotEmpty)
+              ? item['foto']
+              : null,
         );
       }).toList();
     } catch (e) {
@@ -38,6 +41,7 @@ class MasterDataService {
           'priceAdjustment': _parsePrice(item['harga_tambahan']),
           'iconData': _getCollarIcon(item['nama'] ?? ''),
           'applicable': ['Kaos', 'T-Shirt', 'Polo', 'Jersey'],
+          'image': (item['foto'] is String && (item['foto'] as String).isNotEmpty) ? item['foto'] : null,
         };
       }).toList();
     } catch (e) {
@@ -60,6 +64,7 @@ class MasterDataService {
           'priceAdjustment': _parsePrice(item['harga_tambahan']),
           'iconData': _getSleeveIcon(item['nama'] ?? ''),
           'applicable': ['Kaos', 'T-Shirt', 'Polo', 'Hoodie', 'Kemeja', 'Jersey'],
+          'image': (item['foto'] is String && (item['foto'] as String).isNotEmpty) ? item['foto'] : null,
         };
       }).toList();
     } catch (e) {
@@ -116,7 +121,7 @@ class MasterDataService {
         return {
           'id': item['id'] ?? item['id_warna'],
           'nama': item['nama'] ?? '',
-          'kode_hex': item['kode_hex'] ?? null,
+          'kode_hex': item['kode_hex'],
         };
       }).toList();
     } catch (e) {
@@ -197,4 +202,3 @@ class MasterDataService {
     return Icons.checkroom;
   }
 }
-

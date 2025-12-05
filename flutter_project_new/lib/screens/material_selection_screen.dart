@@ -346,11 +346,26 @@ class _MaterialSelectionScreenState extends State<MaterialSelectionScreen> {
                     width: 1,
                   ),
                 ),
-                child: Icon(
-                  isSelected ? Icons.check_circle : Icons.texture,
-                  color: isSelected ? AppColors.primary : AppColors.textLight,
-                  size: 24,
-                ),
+                child: (material.imageUrl != null && material.imageUrl!.isNotEmpty)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          material.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: 50,
+                          height: 50,
+                          errorBuilder: (context, error, stack) => Icon(
+                            isSelected ? Icons.check_circle : Icons.texture,
+                            color: isSelected ? AppColors.primary : AppColors.textLight,
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        isSelected ? Icons.check_circle : Icons.texture,
+                        color: isSelected ? AppColors.primary : AppColors.textLight,
+                        size: 24,
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(

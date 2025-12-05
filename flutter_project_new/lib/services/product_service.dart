@@ -59,21 +59,20 @@ class ProductService {
       }
       
       return productsData.map<Product>((item) {
-        // Get first photo URL if available
         String imageUrl = '';
-        if (item['fotos'] != null && item['fotos'].isNotEmpty) {
+        if (item['image_main'] != null && (item['image_main'] as String).isNotEmpty) {
+          imageUrl = item['image_main'];
+        } else if (item['fotos'] != null && item['fotos'].isNotEmpty) {
           final firstFoto = item['fotos'][0];
-          if (firstFoto['nama_file'] != null) {
-            // Extract URL from storage path
-            // Path format: "public/produk/xxx.jpg" -> "produk/xxx.jpg"
+          if (firstFoto is Map && firstFoto['url'] != null && (firstFoto['url'] as String).isNotEmpty) {
+            imageUrl = firstFoto['url'];
+          } else if (firstFoto['nama_file'] != null) {
             String fotoPath = firstFoto['nama_file'];
             if (fotoPath.startsWith('public/')) {
               fotoPath = fotoPath.replaceFirst('public/', '');
             }
-            // Build URL: http://10.0.2.2:8000/storage/produk/xxx.jpg
             String baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
             imageUrl = '$baseUrl/storage/$fotoPath';
-            print('🖼️ Image URL: $imageUrl');
           }
         }
         
@@ -150,11 +149,14 @@ class ProductService {
       final item = response['data'];
       if (item == null) return null;
       
-      // Get first photo URL if available
       String imageUrl = '';
-      if (item['fotos'] != null && item['fotos'].isNotEmpty) {
+      if (item['image_main'] != null && (item['image_main'] as String).isNotEmpty) {
+        imageUrl = item['image_main'];
+      } else if (item['fotos'] != null && item['fotos'].isNotEmpty) {
         final firstFoto = item['fotos'][0];
-        if (firstFoto['nama_file'] != null) {
+        if (firstFoto is Map && firstFoto['url'] != null && (firstFoto['url'] as String).isNotEmpty) {
+          imageUrl = firstFoto['url'];
+        } else if (firstFoto['nama_file'] != null) {
           String fotoPath = firstFoto['nama_file'];
           if (fotoPath.startsWith('public/')) {
             fotoPath = fotoPath.replaceFirst('public/', '');
